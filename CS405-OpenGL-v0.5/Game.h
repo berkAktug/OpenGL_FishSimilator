@@ -1,10 +1,7 @@
-#pragma once
-
-// Include string
+#ifndef GAME_H
+#define GAME_H
+#include <stdio.h>
 #include <string>
-
-// Include vectors
-#include <vector>
 
 // Include GLEW 
 #include <GL/glew.h>
@@ -12,82 +9,71 @@
 // Include GLFW
 #include <GLFW/glfw3.h>
 
-// Include GLM for 3D mathematics
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
-// Include objLoader
-#include "Common/objloader.hpp"
+// We are introducing GameObject class to compiler so it does not 
+// freak out with circular reference problem.
+class GameObject;
 
-// Include shaders
-#include "Common/shader.hpp"
-
-// Include texture
-#include "Common/texture.hpp"
-
+#include "GameControl.h"
+#include "GameTexture.h"
 #include "GameObject.h"
+#include "Common/shader.hpp"
 
 class Game
 {
 public:
+	static Game &getInstance();
 
-	static Game* getGameInstance();
+	void init();
 
-	void setShaders(std::string pathVertexShader, std::string pathFragmentShader);
-	void setBackgroundColor(float red, float green, float blue, float alpha);
-
-	GLuint getID_Matrix_Model();
-	GLuint getID_Matrix_MVP();
-	GLuint getID_Matrix_View();
-
-	GLuint getID_Program();
-
-	GLuint getTexture();
-	GLuint getID_Texture();
-
-	void setTexture_DDS(std::string path);
-	void setTexture_BMP_custom(std::string path);
-
-
-	glm::mat4 getMatrix_Projection();
-	glm::mat4 getMatrix_View();
-	glm::mat4 getMatrix_Model();
+	glm::mat4 getVPMatrix();
 
 	void run();
 
-	void computeMatricesFromInputs();
+	void setShader(const char*vertexshaderpath, const char*fragmentshaderpath);
 
-private:
-	// Private constructor so that no objects can be created.
-	Game();
+	void setTexture_DDS(std::string imagepath);
+
+	void addObject(std::string objectpath);
+
+	//GameObject getNextObject(); // This one is tricky.
+	//bool isEqual(GameObject leftobject, GameObject rightobject); // Not sure if i need it
+
+	GLuint getProgramID();
+	
+	GLuint getMVPMatrixID();
+	GLuint getViewMatrixID();
+	GLuint getModelMatrixID();
+	
+	GLuint getTextureID();
+	GLuint getLightID();
+
+	GLFWwindow* getWindow();
+
+	void cleanUp();
+
 	~Game();
-
-	bool Init();
-
-	static Game* gameInstance;
-	GLFWwindow * window;
+private:
 
 	int windowSize[2] = { 1024, 768 };
+
 	GLuint ProgramID;
 	GLuint MVPMatrixID;
 	GLuint ViewMatrixID;
 	GLuint ModelMatrixID;
+	GLuint TextureID;
 	GLuint LightID;
 
-	glm::mat4 ViewMatrix;
-	glm::mat4 ProjectionMatrix;
-	glm::mat4 ModelMatrix;
+	glm::mat4 VPMatrix;
 
-	glm::vec3 position;
-	float horizintalAngle;
-	float verticalAngle;
-	float initialFoV;
+	GameTexture Texture; // This is temporary solution. Need to allow multiple textures
 
-	float speed;
-	float mouseSpeed;
+	std::vector<GameObject> gameobjects;
 
+	GLFWwindow* window;
 
-	////
-	GLuint TextureID;
-	GLuint Texture;
+	Game();
 };
+
+#endif

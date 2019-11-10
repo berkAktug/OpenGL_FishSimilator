@@ -19,19 +19,19 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Common\objloader.cpp" />
     <ClCompile Include="Common\shader.cpp" />
-    <ClCompile Include="Common\texture.cpp" />
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="GameControl.cpp" />
     <ClCompile Include="GameObject.cpp" />
-    <ClCompile Include="main-withClass.cpp" />
+    <ClCompile Include="GameTexture.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Common\objloader.hpp" />
     <ClInclude Include="Common\shader.hpp" />
-    <ClInclude Include="Common\texture.hpp" />
     <ClInclude Include="Game.h" />
+    <ClInclude Include="GameControl.h" />
     <ClInclude Include="GameObject.h" />
+    <ClInclude Include="GameTexture.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="StandardShading.fragmentshader" />
