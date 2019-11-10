@@ -150,7 +150,9 @@ Game& Game::getInstance()
 
 void Game::setShader(const char * vertexPath, const char *fragmentPath)
 {
-	this->ProgramID = LoadShaders(vertexPath, fragmentPath);
+	this->Shader = GameShader();
+
+	this->ProgramID = Shader.LoadShaders(vertexPath, fragmentPath);
 	this->ViewMatrixID = glGetUniformLocation(this->ProgramID, "V");
 	this->MVPMatrixID = glGetUniformLocation(this->ProgramID, "MVP");
 	this->ModelMatrixID = glGetUniformLocation(this->ProgramID, "M");
