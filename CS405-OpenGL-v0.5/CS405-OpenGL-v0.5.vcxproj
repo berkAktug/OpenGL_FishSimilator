@@ -19,18 +19,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Common\shader.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameControl.cpp" />
     <ClCompile Include="GameObject.cpp" />
+    <ClCompile Include="GameShader.cpp" />
     <ClCompile Include="GameTexture.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Common\shader.hpp" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameControl.h" />
     <ClInclude Include="GameObject.h" />
+    <ClInclude Include="GameShader.h" />
     <ClInclude Include="GameTexture.h" />
   </ItemGroup>
   <ItemGroup>
