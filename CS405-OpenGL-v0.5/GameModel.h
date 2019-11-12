@@ -1,13 +1,12 @@
 #ifndef MODEL_H
 #define MODEL_H
 
+#include "Include/glad/glad.h"
 //#include <glad/glad.h>
-#include <GL/glew.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "stb_image.cpp"
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>

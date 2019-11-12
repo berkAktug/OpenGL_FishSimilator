@@ -3,7 +3,8 @@
 #include <string>
 #include <vector>
 
-#include <GL/glew.h>
+//#include <GL/glew.h>
+#include "Include/glad/glad.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>

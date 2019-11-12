@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <string>
 
+
+//#include "Include/glad/glad.h"
 // Include GLEW 
-#include <GL/glew.h>
 
 // Include GLFW
-#include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
 
@@ -16,7 +16,7 @@
 class GameModel;
 
 #include "GameControl.h"
-//#include "GameTexture.h"
+#include "GameTexture.h"
 #include "GameModel.h"
 #include "GameShader.h"
 
