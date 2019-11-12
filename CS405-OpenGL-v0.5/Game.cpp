@@ -1,6 +1,6 @@
 #include "Game.h"
 
-Game::Game()
+Game::Game() : Shader("", "")
 {
 }
 
@@ -78,10 +78,10 @@ void Game::run()
 {
 	GameControl::getIntance().init();
 
-	auto r_int = rand();
+	//auto r_int = rand();
 
-	auto random_loc_transform = glm::translate(glm::mat4(1), glm::vec3((r_int % 5), 0.0f, 0.0f));
-	gameobjects[1].setModelMatrix(random_loc_transform);
+	//auto random_loc_transform = glm::translate(glm::mat4(1), glm::vec3((r_int % 5), 0.0f, 0.0f));
+	//gameobjects[1].setModelMatrix(random_loc_transform);
 
 	int SIZE = gameobjects.size();
 	do {
@@ -89,7 +89,9 @@ void Game::run()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Use our shader
-		glUseProgram(Game::getInstance().getProgramID());
+		//glUseProgram(Game::getInstance().getProgramID());
+		Shader.use();
+
 
 		// Compute the MVP matrix from keyboard and mouse input
 		GameControl::getIntance().computeMatricesFromInputs();
@@ -104,16 +106,10 @@ void Game::run()
 		glm::vec3 lightPos = glm::vec3(4, 4, 4);
 		glUniform3f(Game::getInstance().getLightID(), lightPos.x, lightPos.y, lightPos.z);
 
-		// Bind our texture in Texture Unit 0
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, this->Texture.getTexture());
-		// Set our "myTextureSampler" sampler to use Texture Unit 0
-		glUniform1i(Game::getInstance().getTextureID(), 0);
-
 		// Draw 
 		for (int i = 0; i < SIZE; ++i) 
 		{
-			gameobjects[i].draw();
+			gameobjects[i].Draw(Shader);
 		}
 
 		// Swap buffers
@@ -148,39 +144,22 @@ Game& Game::getInstance()
 	return game;
 }
 
-void Game::setShader(const char * vertexPath, const char *fragmentPath)
+void Game::setShader(GameShader shader)
 {
-	this->Shader = GameShader();
-
-	this->ProgramID = Shader.LoadShaders(vertexPath, fragmentPath);
-	this->ViewMatrixID = glGetUniformLocation(this->ProgramID, "V");
-	this->MVPMatrixID = glGetUniformLocation(this->ProgramID, "MVP");
-	this->ModelMatrixID = glGetUniformLocation(this->ProgramID, "M");
+	this->ViewMatrixID = glGetUniformLocation(shader.ID, "V");
+	this->MVPMatrixID = glGetUniformLocation(shader.ID, "MVP");
+	this->ModelMatrixID = glGetUniformLocation(shader.ID, "M");
 
 	// Get a handle for our "LightrPosition" uniform
-	glUseProgram(this->ProgramID);
-	this->LightID = glGetUniformLocation(this->ProgramID, "LightPosition_worldspace");
+	shader.use();
 
-	this->TextureID = glGetUniformLocation(this->ProgramID, "myTextureSampler");
+	this->LightID = glGetUniformLocation(shader.ID, "LightPosition_worldspace");
+	this->TextureID = glGetUniformLocation(shader.ID, "myTextureSampler");
 }
 
-void Game::setTexture_DDS(std::string imagepath)
+void Game::addObject(GameModel model)
 {
-	this->Texture = GameTexture();
-	this->Texture.loadDDS("uvmap.dds");
-}
-
-void Game::addObject(std::string objectpath)
-{
-	GameObject newObj = GameObject();
-	newObj.loadObj(objectpath);
-
-	gameobjects.push_back(newObj);
-}
-
-GLuint Game::getProgramID()
-{
-	return this->ProgramID;
+	gameobjects.push_back(model);
 }
 
 GLuint Game::getMVPMatrixID()

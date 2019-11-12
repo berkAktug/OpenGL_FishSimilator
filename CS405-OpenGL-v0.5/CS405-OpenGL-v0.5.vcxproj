@@ -21,21 +21,21 @@
   <ItemGroup>
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="GameControl.cpp" />
-    <ClCompile Include="GameObject.cpp" />
+    <ClCompile Include="GameMesh.cpp" />
+    <ClCompile Include="GameModel.cpp" />
     <ClCompile Include="GameShader.cpp" />
     <ClCompile Include="GameTexture.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="GameControl.h" />
-    <ClInclude Include="GameObject.h" />
+    <ClInclude Include="GameMesh.h" />
+    <ClInclude Include="GameModel.h" />
     <ClInclude Include="GameShader.h" />
     <ClInclude Include="GameTexture.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="StandardShading.fragmentshader" />
-    <None Include="StandardShading.vertexshader" />
+    <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -110,13 +110,13 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;$(SolutionDir)/../../External Libs/ASSIMP/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)/../../External Libs/GLFW/lib-vc2017;$(SolutionDir)/../../External Libs/GLEW/lib/Release/Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)/../../External Libs/GLFW/lib-vc2017;$(SolutionDir)/../../External Libs/GLEW/lib/Release/Win32;$(SolutionDir)/../../External Libs/ASSIMP/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
@@ -131,13 +131,13 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;$(SolutionDir)/../../External Libs/ASSIMP/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)/../../External Libs/GLFW/lib-vc2017;$(SolutionDir)/../../External Libs/GLEW/lib/Release/Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)/../../External Libs/GLFW/lib-vc2017;$(SolutionDir)/../../External Libs/GLEW/lib/Release/Win32;$(SolutionDir)/../../External Libs/ASSIMP/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
@@ -154,15 +154,15 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;$(SolutionDir)/../../External Libs/ASSIMP/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)/../../External Libs/GLFW/lib-vc2017;$(SolutionDir)/../../External Libs/GLEW/lib/Release/Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)/../../External Libs/GLFW/lib-vc2017;$(SolutionDir)/../../External Libs/GLEW/lib/Release/Win32;$(SolutionDir)/../../External Libs/ASSIMP/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
@@ -179,15 +179,15 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;$(SolutionDir)/../../External Libs/ASSIMP/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)/../../External Libs/GLFW/lib-vc2017;$(SolutionDir)/../../External Libs/GLEW/lib/Release/Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)/../../External Libs/GLFW/lib-vc2017;$(SolutionDir)/../../External Libs/GLEW/lib/Release/Win32;$(SolutionDir)/../../External Libs/ASSIMP/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>

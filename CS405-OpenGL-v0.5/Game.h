@@ -13,11 +13,11 @@
 
 // We are introducing GameObject class to compiler so it does not 
 // freak out with circular reference problem.
-class GameObject;
+class GameModel;
 
 #include "GameControl.h"
-#include "GameTexture.h"
-#include "GameObject.h"
+//#include "GameTexture.h"
+#include "GameModel.h"
 #include "GameShader.h"
 
 class Game
@@ -31,16 +31,9 @@ public:
 
 	void run();
 
-	void setShader(const char*vertexshaderpath, const char*fragmentshaderpath);
+	void setShader(GameShader Shader);
 
-	void setTexture_DDS(std::string imagepath);
-
-	void addObject(std::string objectpath);
-
-	//GameObject getNextObject(); // This one is tricky.
-	//bool isEqual(GameObject leftobject, GameObject rightobject); // Not sure if i need it
-
-	GLuint getProgramID();
+	void addObject(GameModel model);
 	
 	GLuint getMVPMatrixID();
 	GLuint getViewMatrixID();
@@ -58,7 +51,6 @@ private:
 
 	int windowSize[2] = { 1024, 768 };
 
-	GLuint ProgramID;
 	GLuint MVPMatrixID;
 	GLuint ViewMatrixID;
 	GLuint ModelMatrixID;
@@ -67,10 +59,9 @@ private:
 
 	glm::mat4 VPMatrix;
 
-	GameTexture Texture; // This is temporary solution. Need to allow multiple textures
 	GameShader  Shader; // This is temporary solution. Need to allow multiple textures
 
-	std::vector<GameObject> gameobjects;
+	std::vector<GameModel> gameobjects;
 
 	GLFWwindow* window;
 
