@@ -18,7 +18,7 @@ class GameObject;
 #include "GameControl.h"
 #include "GameTexture.h"
 #include "GameObject.h"
-#include "GameShader.h"
+#include "Common/shader.hpp"
 
 class Game
 {
@@ -68,7 +68,6 @@ private:
 	glm::mat4 VPMatrix;
 
 	GameTexture Texture; // This is temporary solution. Need to allow multiple textures
-	GameShader  Shader; // This is temporary solution. Need to allow multiple textures
 
 	std::vector<GameObject> gameobjects;
 
