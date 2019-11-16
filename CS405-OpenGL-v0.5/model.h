@@ -1,7 +1,6 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-//#include <glad/glad.h> 
 #include "Include/glad/glad.h"
 
 #include <glm/glm.hpp>
@@ -11,8 +10,6 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-//#include <learnopengl/mesh.h>
-//#include <learnopengl/shader.h>
 #include "mesh.h"
 #include "shader.h"
 
@@ -41,6 +38,11 @@ public:
 	Model(string const &path, bool gamma = false) : gammaCorrection(gamma)
 	{
 		loadModel(path);
+	}
+
+	void addTexture(Texture texture) 
+	{
+		textures_loaded.push_back(texture);
 	}
 
 	// draws the model, and thus all its meshes
@@ -208,7 +210,7 @@ private:
 unsigned int TextureFromFile(const char *path, const string &directory, bool gamma)
 {
 	string filename = string(path);
-	filename = directory + '/' + filename;
+	//filename = directory + '/' + filename;
 
 	unsigned int textureID;
 	glGenTextures(1, &textureID);

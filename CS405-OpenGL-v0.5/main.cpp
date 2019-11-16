@@ -20,6 +20,10 @@ void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
 unsigned int loadCubemap(vector<std::string> faces);
 
+
+void moveRandom(glm::mat4 &modelMatrix);
+
+
 // settings
 const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
@@ -79,55 +83,9 @@ int main()
 
 	// build and compile shaders
 	// -------------------------
-	Shader shader("6.1.cubemaps.vs", "6.1.cubemaps.fs");
+	//Shader shader("1.model_loading.vs", "1.model_loading.fs");
 	Shader skyboxShader("6.1.skybox.vs", "6.1.skybox.fs");
 
-	// set up vertex data (and buffer(s)) and configure vertex attributes
-	// ------------------------------------------------------------------
-	//float cubeVertices[] = {
-	//	// positions          // texture Coords
-	//	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-	//	 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-	//	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	//	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	//	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-	//	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-	//	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	//	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-	//	 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-	//	 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-	//	-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-	//	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-	//	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	//	-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	//	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	//	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	//	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	//	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-	//	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	//	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	//	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	//	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	//	 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	//	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-	//	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-	//	 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-	//	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-	//	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-	//	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-	//	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-	//	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-	//	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-	//	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	//	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-	//	-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-	//	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-	//};
 	float skyboxVertices[] = {
 		// positions          
 		-1.0f,  1.0f, -1.0f,
@@ -173,32 +131,12 @@ int main()
 		 1.0f, -1.0f,  1.0f
 	};
 
-	auto soldierModel = Model("cyborg.obj");;
-	auto cubeModel = Model("cube.obj");
+	auto cyborgModel = Model("cyborg.obj");
+	auto soldierModel = Model("nanosuit.obj");
+	Shader soldiershader("1.model_loading.vs", "1.model_loading.fs");
 
-	//unsigned int soldierVAO, soldierVBO;
-	//glGenVertexArrays(1, &soldierVAO);
-	//glGenBuffers(1, &soldierVAO);
-	//glBindVertexArray(soldierVAO);
-	//glBindBuffer(GL_ARRAY_BUFFER, soldierVBO);
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
-	//glEnableVertexAttribArray(0);
-	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	//glEnableVertexAttribArray(1);
-	//glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	//auto cubeModel = Model("cube.obj");
 
-
-	// cube VAO
-	//unsigned int cubeVAO, cubeVBO;
-	//glGenVertexArrays(1, &cubeVAO);
-	//glGenBuffers(1, &cubeVBO);
-	//glBindVertexArray(cubeVAO);
-	//glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
-	//glEnableVertexAttribArray(0);
-	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	//glEnableVertexAttribArray(1);
-	//glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 	// skybox VAO
 	unsigned int skyboxVAO, skyboxVBO;
 	glGenVertexArrays(1, &skyboxVAO);
@@ -209,38 +147,28 @@ int main()
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
-	// load textures
-	// -------------
-	//unsigned int cubeTexture = loadTexture(FileSystem::getPath("resources/textures/marble.jpg").c_str());
-	unsigned int cubeTexture = loadTexture("marble.jpg");
-
-	//vector<std::string> faces
-	//{
-		//FileSystem::getPath("resources/textures/skybox/right.jpg"),
-		//FileSystem::getPath("resources/textures/skybox/left.jpg"),
-		//FileSystem::getPath("resources/textures/skybox/top.jpg"),
-		//FileSystem::getPath("resources/textures/skybox/bottom.jpg"),
-		//FileSystem::getPath("resources/textures/skybox/front.jpg"),
-		//FileSystem::getPath("resources/textures/skybox/back.jpg")
-	//};
 	vector<std::string> faces
 	{
-		"right.jpg",
-		"left.jpg",
-		"top.jpg",
-		"bottom.jpg",
-		"front.jpg",
-		"back.jpg"
+		"skyboxright.jpg",
+		"skyboxleft.jpg",
+		"skyboxtop.jpg",
+		"skyboxbottom.jpg",
+		"skyboxfront.jpg",
+		"skyboxback.jpg"
 	};
 	unsigned int cubemapTexture = loadCubemap(faces);
 
 	// shader configuration
 	// --------------------
-	shader.use();
-	shader.setInt("texture1", 0);
+	soldiershader.use();
 
 	skyboxShader.use();
 	skyboxShader.setInt("skybox", 0);
+
+	// cyborg model matrix
+	// -------------------
+	glm::mat4 cyborgModelMatrix = glm::mat4(1.0f);
+	cyborgModelMatrix = glm::scale(cyborgModelMatrix, glm::vec3(0.5f, 0.5f, 0.5f));	// it's a bit too big for our scene, so scale it down
 
 	// render loop
 	// -----------
@@ -258,25 +186,29 @@ int main()
 
 		// render
 		// ------
-		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// draw scene as normal
-		shader.use();
-		glm::mat4 model = glm::mat4(1.0f);
-		glm::mat4 view = camera.GetViewMatrix();
+		// don't forget to enable shader before setting uniforms
+		soldiershader.use();
+
+		// view/projection transformations
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		shader.setMat4("model", model);
-		shader.setMat4("view", view);
-		shader.setMat4("projection", projection);
-		// cubes
-		//glBindVertexArray(cubeVAO);
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_2D, cubeTexture);
-		//glDrawArrays(GL_TRIANGLES, 0, 36);
-		//glBindVertexArray(0);
-		cubeModel.Draw(shader);
-		soldierModel.Draw(shader);
+		glm::mat4 view = camera.GetViewMatrix();
+		soldiershader.setMat4("projection", projection);
+		soldiershader.setMat4("view", view);
+
+		//// render the loaded model
+		//glm::mat4 model = glm::mat4(1.0f);
+		//model = glm::translate(model, glm::vec3(0.0f, -1.75f, 0.0f)); // translate it down so it's at the center of the scene
+		//model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));	// it's a bit too big for our scene, so scale it down
+		//soldiershader.setMat4("model", model);
+		//soldierModel.Draw(soldiershader);
+		
+		moveRandom(cyborgModelMatrix);
+		soldiershader.setMat4("model", cyborgModelMatrix);
+		cyborgModel.Draw(soldiershader);
+
 
 		// draw skybox as last
 		glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
@@ -442,4 +374,47 @@ unsigned int loadCubemap(vector<std::string> faces)
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
 	return textureID;
+}
+
+
+void moveRandom(glm::mat4 &modelMatrix)
+{
+
+	int randDirection = rand() % 5;
+
+	int randDistance = (rand() % 2);
+	randDistance *= 5;
+	
+	double deltaDistance = randDistance * deltaTime;
+
+	switch (randDirection)
+	{
+	case 0:
+		// move up
+		modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, deltaDistance, 0.0f));
+		break;
+	case 1:
+		// move down
+		modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -deltaDistance, 0.0f));
+		break;
+	case 2:
+		// move right
+		modelMatrix = glm::translate(modelMatrix, glm::vec3(deltaDistance, 0.0f, 0.0f));
+		break;
+	case 3:
+		// move left
+		modelMatrix = glm::translate(modelMatrix, glm::vec3(-deltaDistance, 0.0f, 0.0f));
+		break;
+	case 4:
+		// move forward
+		modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, deltaDistance));
+		break;
+	case 5:
+		// move backward
+		modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -deltaDistance));
+		break;
+	default:
+		break;
+	}
+
 }
