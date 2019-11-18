@@ -27,7 +27,7 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="filesystem.h" />
     <ClInclude Include="model.h" />
-    <ClInclude Include="RecourceManager.h" />
+    <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="texture.h" />
   </ItemGroup>

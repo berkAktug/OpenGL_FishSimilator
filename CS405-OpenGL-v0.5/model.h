@@ -49,6 +49,22 @@ public:
 		loadModel(path);
 	}
 
+	//void clearAllTextures()
+	//{
+	//	textures_loaded.clear();
+	//}
+
+	//void addTexture(std::string path, std::string type = "texture_diffuse")
+	//{
+	//	// THIS ASSUMES THERE ARE NO DELETE OPERATIONS IN THE VECTOR
+	//	auto temp_id = textures_loaded.size() + 1;
+	//	Texture temp;
+	//	temp.id = temp_id;
+	//	temp.path = path;
+	//	temp.type = type;
+	//	textures_loaded.push_back(temp);
+	//}
+
 	void addTexture(Texture texture) 
 	{
 		textures_loaded.push_back(texture);
@@ -117,11 +133,11 @@ public:
 		{
 		case 0:
 			// move up
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, deltaDistance));
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, deltaDistance, 0.0f));
 			break;
 		case 1:
 			// move down
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -deltaDistance));
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -deltaDistance, 0.0f));
 			break;
 		case 2:
 			// move right
@@ -133,11 +149,11 @@ public:
 			break;
 		case 4:
 			// move forward
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, deltaDistance, 0.0f));
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, deltaDistance));
 			break;
 		case 5:
 			// move backward
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -deltaDistance, 0.0f));
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -deltaDistance));
 			break;
 		default:
 			break;

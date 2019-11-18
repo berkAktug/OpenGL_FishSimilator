@@ -9,6 +9,6 @@ Ks 0.000000 0.000000 0.000000
 Ni 1.000000
 d 1.000000
 illum 2
-map_Kd ./Recourse/objects/cyborg/cyborg_diffuse.png
-map_Bump ./Recourse/objects/cyborg/cyborg_normal.png
-map_Ks ./Recourse/objects/cyborg/cyborg_specular.png
+map_Kd ./Resource/objects/cyborg/cyborg_diffuse.png
+map_Bump ./Resource/objects/cyborg/cyborg_normal.png
+map_Ks ./Resource/objects/cyborg/cyborg_specular.png

@@ -1,4 +1,3 @@
-
 #include "Include/glad/glad.h"
 #include <GLFW/glfw3.h>
 #include "stb_image.h"
@@ -7,7 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "RecourceManager.h"
+#include "ResourceManager.h"
 
 #include "camera.h"
 #include "model.h"
@@ -21,29 +20,38 @@ void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
 unsigned int loadCubemap(std::vector<std::string> faces);
 
+// PFfft.
+void processInputForObject(GLFWwindow *window, Model &model, double deltaDistance);
+// PFfft. x2
+unsigned int skyboxInit();
+
 // STRING TABLE
 // -----------------------------
 std::string WINDOW_TITLE = "Fish In the sea";
 
-std::string KEY_SHADER_SKYBOX = "SKYBOX_SHADER";
-std::string KEY_SHADER_OBJECT = "OBJECT_SHADER";
+std::string KEY_SHADER_SKYBOX	= "SKYBOX_SHADER";
+std::string KEY_SHADER_OBJECT	= "OBJECT_SHADER";
+std::string KEY_TEXTURE_MARBLE	= "TEXTURE_MARBLE";
 
-std::string FILE_SHADER_FRAGMENT_SKYBOX = "./Recourse/shaders/skybox.fs";
-std::string FILE_SHADER_VERTEX_SKYBOX	= "./Recourse/shaders/skybox.vs";
+std::string FILE_TEXTURE_MARBLE			= "./Resource/textures/marble.jpg";
 
-std::string FILE_SHADER_FRAGMENT_STANDART_OBJECT = "./Recourse/shaders/model_loading.fs";
-std::string FILE_SHADER_VERTEX_STANDARD_OBJECT	 = "./Recourse/shaders/model_loading.vs";
+std::string FILE_SHADER_FRAGMENT_SKYBOX = "./Resource/shaders/skybox.fs";
+std::string FILE_SHADER_VERTEX_SKYBOX	= "./Resource/shaders/skybox.vs";
 
-std::string FILE_OBJECT_CYBORG		= "./Recourse/objects/cyborg/cyborg.obj";
-std::string FILE_OBJECT_NANOSUIT	= "./Recourse/objects/nanosuit/nanosuit.obj";
-std::string FILE_OBJECT_FLATPLANE	= "./Recourse/objects/flat-plane/flat-plane.obj";
+std::string FILE_SHADER_FRAGMENT_STANDART_OBJECT = "./Resource/shaders/model_loading.fs";
+std::string FILE_SHADER_VERTEX_STANDARD_OBJECT	 = "./Resource/shaders/model_loading.vs";
 
-std::string FILE_SKYBOX_RIGHT	= "./Recourse/textures/skybox/right.jpg";
-std::string FILE_SKYBOX_LEFT	= "./Recourse/textures/skybox/left.jpg";
-std::string FILE_SKYBOX_FRONT	= "./Recourse/textures/skybox/front.jpg";
-std::string FILE_SKYBOX_BACK	= "./Recourse/textures/skybox/back.jpg";
-std::string FILE_SKYBOX_TOP		= "./Recourse/textures/skybox/top.jpg";
-std::string FILE_SKYBOX_BOTTOM	= "./Recourse/textures/skybox/bottom.jpg";
+std::string FILE_OBJECT_CYBORG			= "./Resource/objects/cyborg/cyborg.obj";
+std::string FILE_OBJECT_NANOSUIT		= "./Resource/objects/nanosuit/nanosuit.obj";
+std::string FILE_OBJECT_FLATPLANE		= "./Resource/objects/flat-plane/flat-plane.obj";
+std::string FILE_OBJECT_COIN			= "./Resource/objects/coin/coin.fbx";
+
+std::string FILE_TEXTURE_SKYBOX_RIGHT	= "./Resource/textures/skybox/right.jpg";
+std::string FILE_TEXTURE_SKYBOX_LEFT	= "./Resource/textures/skybox/left.jpg";
+std::string FILE_TEXTURE_SKYBOX_FRONT	= "./Resource/textures/skybox/front.jpg";
+std::string FILE_TEXTURE_SKYBOX_BACK	= "./Resource/textures/skybox/back.jpg";
+std::string FILE_TEXTURE_SKYBOX_TOP		= "./Resource/textures/skybox/top.jpg";
+std::string FILE_TEXTURE_SKYBOX_BOTTOM	= "./Resource/textures/skybox/bottom.jpg";
 // ------------------------------
 
 
@@ -60,6 +68,10 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+
+
+// PFTT
+unsigned int skyboxVAO, skyboxVBO;
 
 
 int main()
@@ -110,6 +122,132 @@ int main()
 	ResourceManager::LoadShader(FILE_SHADER_VERTEX_SKYBOX.c_str(), 
 		FILE_SHADER_FRAGMENT_SKYBOX.c_str(), nullptr, KEY_SHADER_SKYBOX);
 
+	auto cyborgModel = Model(FILE_OBJECT_CYBORG);
+	auto soldierModel = Model(FILE_OBJECT_NANOSUIT);
+	auto flatCubeModel = Model(FILE_OBJECT_FLATPLANE);
+	auto coinModel = Model(FILE_OBJECT_COIN);
+
+	ResourceManager::LoadShader(FILE_SHADER_VERTEX_STANDARD_OBJECT.c_str(), 
+		FILE_SHADER_FRAGMENT_STANDART_OBJECT.c_str(), nullptr, KEY_SHADER_OBJECT);
+	
+	// Init skybox, its not good practise.
+	unsigned int cubemapTexture = skyboxInit();
+
+	// shader configuration
+	// --------------------
+	ResourceManager::GetShader(KEY_SHADER_OBJECT).use();
+
+	ResourceManager::GetShader(KEY_SHADER_SKYBOX).use().setInt("skybox", 0);
+
+	// cyborg model matrix
+	// -------------------
+	auto scaleCyborg	= glm::vec3(0.5f, 0.5f, 0.5f);
+	auto scaleSoldier	= glm::vec3(0.2f, 0.2f, 0.2f);
+	auto scaleFlatPlane = glm::vec3(20.0f, 0.001f, 20.0f);
+	auto scaleCoin		= glm::vec3(0.01f, 0.01f, 0.01f);
+
+	coinModel.move(2.0f, M_UP);
+	coinModel.move(2.0f, M_RIGHT);
+
+
+	cyborgModel.ScaleModel(scaleCyborg);
+	soldierModel.ScaleModel(scaleSoldier);
+	flatCubeModel.ScaleModel(scaleFlatPlane);
+	coinModel.ScaleModel(scaleCoin);
+
+	cyborgModel.move(1.0f, M_UP);
+	soldierModel.move(1.75f, M_DOWN);
+
+
+	// frame counter for random movement
+	// ---------------
+
+	int randDistance;
+
+	// render loop
+	// -----------
+	while (!glfwWindowShouldClose(window))
+	{
+		// per-frame time logic
+		// --------------------
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
+		randDistance = rand() % 2;
+		randDistance *= 5;
+
+		double deltaDistance = randDistance * deltaTime;
+
+		// input
+		// -----
+		processInput(window);
+		processInputForObject(window, cyborgModel, deltaDistance);
+
+		// render
+		// ------
+		glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// don't forget to enable shader before setting uniforms
+		//soldiershader.use();
+		ResourceManager::GetShader(KEY_SHADER_OBJECT).use();
+
+		// view/projection transformations
+		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		glm::mat4 view = camera.GetViewMatrix();
+		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("projection", projection);
+		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("view", view);
+
+		//// render the loaded model
+
+		cyborgModel.moveRandom(deltaDistance);
+		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", cyborgModel.GetModelMatrix());
+		cyborgModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+
+		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", soldierModel.GetModelMatrix());
+		soldierModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+
+		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", flatCubeModel.GetModelMatrix());
+		flatCubeModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+
+		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", coinModel.GetModelMatrix());
+		coinModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+
+
+		// draw skybox as last
+		glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+		ResourceManager::GetShader(KEY_SHADER_SKYBOX).use();
+		view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+		ResourceManager::GetShader(KEY_SHADER_SKYBOX).setMat4("view", view);
+		ResourceManager::GetShader(KEY_SHADER_SKYBOX).setMat4("projection", projection);
+		// skybox cube
+		glBindVertexArray(skyboxVAO);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindVertexArray(0);
+		glDepthFunc(GL_LESS); // set depth function back to default
+
+		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+		// -------------------------------------------------------------------------------
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+	}
+
+	// optional: de-allocate all resources once they've outlived their purpose:
+	// ------------------------------------------------------------------------
+	//glDeleteVertexArrays(1, &cubeVAO);
+	glDeleteVertexArrays(1, &skyboxVAO);
+	//glDeleteBuffers(1, &cubeVBO);
+	glDeleteBuffers(1, &skyboxVAO);
+
+	glfwTerminate();
+	return 0;
+}
+
+unsigned int skyboxInit()
+{
 	float skyboxVertices[] = {
 		// positions          
 		-1.0f,  1.0f, -1.0f,
@@ -154,18 +292,8 @@ int main()
 		-1.0f, -1.0f,  1.0f,
 		 1.0f, -1.0f,  1.0f
 	};
-
-	auto cyborgModel = Model(FILE_OBJECT_CYBORG);
-	auto soldierModel = Model(FILE_OBJECT_NANOSUIT);
-	auto flatCubeModel = Model(FILE_OBJECT_FLATPLANE);
-
-	//Shader soldiershader("1.model_loading.vs", "1.model_loading.fs");
-	ResourceManager::LoadShader(FILE_SHADER_VERTEX_STANDARD_OBJECT.c_str(), 
-		FILE_SHADER_FRAGMENT_STANDART_OBJECT.c_str(), nullptr, KEY_SHADER_OBJECT);
-	//auto cubeModel = Model("cube.obj");
-
 	// skybox VAO
-	unsigned int skyboxVAO, skyboxVBO;
+	//unsigned int skyboxVAO, skyboxVBO;
 	glGenVertexArrays(1, &skyboxVAO);
 	glGenBuffers(1, &skyboxVBO);
 	glBindVertexArray(skyboxVAO);
@@ -176,134 +304,14 @@ int main()
 
 	std::vector<std::string> faces
 	{
-		FILE_SKYBOX_RIGHT,
-		FILE_SKYBOX_LEFT,
-		FILE_SKYBOX_TOP,
-		FILE_SKYBOX_BOTTOM,
-		FILE_SKYBOX_FRONT,
-		FILE_SKYBOX_BACK
+		FILE_TEXTURE_SKYBOX_RIGHT,
+		FILE_TEXTURE_SKYBOX_LEFT,
+		FILE_TEXTURE_SKYBOX_TOP,
+		FILE_TEXTURE_SKYBOX_BOTTOM,
+		FILE_TEXTURE_SKYBOX_FRONT,
+		FILE_TEXTURE_SKYBOX_BACK
 	};
-	unsigned int cubemapTexture = loadCubemap(faces);
-
-	// shader configuration
-	// --------------------
-	ResourceManager::GetShader(KEY_SHADER_OBJECT).use();
-
-	ResourceManager::GetShader(KEY_SHADER_SKYBOX).use().setInt("skybox", 0);
-
-	// cyborg model matrix
-	// -------------------
-	auto scaleCyborg = glm::vec3(0.5f, 0.5f, 0.5f);
-	auto scaleSoldier = glm::vec3(0.2f, 0.2f, 0.2f);
-	auto scaleFlatPlane = glm::vec3(10.0f, 0.01f, 10.0f);
-
-	cyborgModel.ScaleModel(scaleCyborg);
-	soldierModel.ScaleModel(scaleSoldier);
-	flatCubeModel.ScaleModel(scaleFlatPlane);
-
-	cyborgModel.move(1.0f, M_UP);
-	soldierModel.move(1.75f, M_DOWN);
-
-	// frame counter for random movement
-	// ---------------
-
-	int randDistance;
-
-	// render loop
-	// -----------
-	while (!glfwWindowShouldClose(window))
-	{
-		// per-frame time logic
-		// --------------------
-		float currentFrame = glfwGetTime();
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
-
-		randDistance = rand() % 2;
-		randDistance *= 5;
-
-		double deltaDistance = randDistance * deltaTime;
-
-		// input
-		// -----
-		processInput(window);
-
-
-		if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
-		{
-			soldierModel.move(deltaDistance, M_FORWARD);
-		}
-		if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
-		{
-			soldierModel.move(deltaDistance, M_BACKWARD);
-		}
-		if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
-		{
-			soldierModel.move(deltaDistance, M_LEFT);
-		}
-		if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
-		{
-			soldierModel.move(deltaDistance, M_RIGHT);
-		}
-		
-
-		// render
-		// ------
-		glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		// don't forget to enable shader before setting uniforms
-		//soldiershader.use();
-		ResourceManager::GetShader(KEY_SHADER_OBJECT).use();
-
-		// view/projection transformations
-		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		glm::mat4 view = camera.GetViewMatrix();
-		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("projection", projection);
-		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("view", view);
-
-		//// render the loaded model
-
-		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", soldierModel.GetModelMatrix());
-		soldierModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
-
-		cyborgModel.moveRandom(deltaDistance);
-		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", cyborgModel.GetModelMatrix());
-		cyborgModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
-
-		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", flatCubeModel.GetModelMatrix());
-		flatCubeModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
-
-
-		// draw skybox as last
-		glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-		ResourceManager::GetShader(KEY_SHADER_SKYBOX).use();
-		view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
-		ResourceManager::GetShader(KEY_SHADER_SKYBOX).setMat4("view", view);
-		ResourceManager::GetShader(KEY_SHADER_SKYBOX).setMat4("projection", projection);
-		// skybox cube
-		glBindVertexArray(skyboxVAO);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		glBindVertexArray(0);
-		glDepthFunc(GL_LESS); // set depth function back to default
-
-		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-		// -------------------------------------------------------------------------------
-		glfwSwapBuffers(window);
-		glfwPollEvents();
-	}
-
-	// optional: de-allocate all resources once they've outlived their purpose:
-	// ------------------------------------------------------------------------
-	//glDeleteVertexArrays(1, &cubeVAO);
-	glDeleteVertexArrays(1, &skyboxVAO);
-	//glDeleteBuffers(1, &cubeVBO);
-	glDeleteBuffers(1, &skyboxVAO);
-
-	glfwTerminate();
-	return 0;
+	return loadCubemap(faces);
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
@@ -338,6 +346,27 @@ void processInput(GLFWwindow *window)
 	{
 		camera.ProcessKeyboard(DOWN, deltaTime);
 	}
+}
+
+void processInputForObject(GLFWwindow * window, Model &model, double deltaDistance)
+{
+	if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
+	{
+		model.move(deltaDistance, M_FORWARD);
+	}
+	if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
+	{
+		model.move(deltaDistance, M_BACKWARD);
+	}
+	if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
+	{
+		model.move(deltaDistance, M_LEFT);
+	}
+	if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
+	{
+		model.move(deltaDistance, M_RIGHT);
+	}
+
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
