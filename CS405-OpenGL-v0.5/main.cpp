@@ -9,8 +9,6 @@
 
 #include "RecourceManager.h"
 
-//#include "filesystem.h"
-//#include "shader.h"
 #include "camera.h"
 #include "model.h"
 
@@ -30,15 +28,22 @@ std::string WINDOW_TITLE = "Fish In the sea";
 std::string KEY_SHADER_SKYBOX = "SKYBOX_SHADER";
 std::string KEY_SHADER_OBJECT = "OBJECT_SHADER";
 
-std::string FILE_SHADER_FRAGMENT_SKYBOX = "6.1.skybox.fs";
-std::string FILE_SHADER_VERTEX_SKYBOX = "6.1.skybox.vs";
+std::string FILE_SHADER_FRAGMENT_SKYBOX = "./Recourse/shaders/skybox.fs";
+std::string FILE_SHADER_VERTEX_SKYBOX	= "./Recourse/shaders/skybox.vs";
 
-std::string FILE_SHADER_FRAGMENT_STANDART_OBJECT = "1.model_loading.fs";
-std::string FILE_SHADER_VERTEX_STANDARD_OBJECT = "1.model_loading.vs";
+std::string FILE_SHADER_FRAGMENT_STANDART_OBJECT = "./Recourse/shaders/model_loading.fs";
+std::string FILE_SHADER_VERTEX_STANDARD_OBJECT	 = "./Recourse/shaders/model_loading.vs";
 
-std::string FILE_OBJECT_CYBORG = "cyborg.obj";
-std::string FILE_OBJECT_NANOSUIT = "nanosuit.obj";
-std::string FILE_OBJECT_FLATPLANE = "flat-plane.obj";
+std::string FILE_OBJECT_CYBORG		= "./Recourse/objects/cyborg/cyborg.obj";
+std::string FILE_OBJECT_NANOSUIT	= "./Recourse/objects/nanosuit/nanosuit.obj";
+std::string FILE_OBJECT_FLATPLANE	= "./Recourse/objects/flat-plane/flat-plane.obj";
+
+std::string FILE_SKYBOX_RIGHT	= "./Recourse/textures/skybox/right.jpg";
+std::string FILE_SKYBOX_LEFT	= "./Recourse/textures/skybox/left.jpg";
+std::string FILE_SKYBOX_FRONT	= "./Recourse/textures/skybox/front.jpg";
+std::string FILE_SKYBOX_BACK	= "./Recourse/textures/skybox/back.jpg";
+std::string FILE_SKYBOX_TOP		= "./Recourse/textures/skybox/top.jpg";
+std::string FILE_SKYBOX_BOTTOM	= "./Recourse/textures/skybox/bottom.jpg";
 // ------------------------------
 
 
@@ -56,7 +61,6 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-// shader keys
 
 int main()
 {
@@ -103,8 +107,6 @@ int main()
 
 	// build and compile shaders
 	// -------------------------
-	//Shader shader("1.model_loading.vs", "1.model_loading.fs");
-	//Shader skyboxShader("6.1.skybox.vs", "6.1.skybox.fs");
 	ResourceManager::LoadShader(FILE_SHADER_VERTEX_SKYBOX.c_str(), 
 		FILE_SHADER_FRAGMENT_SKYBOX.c_str(), nullptr, KEY_SHADER_SKYBOX);
 
@@ -174,12 +176,12 @@ int main()
 
 	std::vector<std::string> faces
 	{
-		"skyboxright.jpg",
-		"skyboxleft.jpg",
-		"skyboxtop.jpg",
-		"skyboxbottom.jpg",
-		"skyboxfront.jpg",
-		"skyboxback.jpg"
+		FILE_SKYBOX_RIGHT,
+		FILE_SKYBOX_LEFT,
+		FILE_SKYBOX_TOP,
+		FILE_SKYBOX_BOTTOM,
+		FILE_SKYBOX_FRONT,
+		FILE_SKYBOX_BACK
 	};
 	unsigned int cubemapTexture = loadCubemap(faces);
 
@@ -261,11 +263,6 @@ int main()
 		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("view", view);
 
 		//// render the loaded model
-		//glm::mat4 model = glm::mat4(1.0f);
-		//model = glm::translate(model, glm::vec3(0.0f, -1.75f, 0.0f)); // translate it down so it's at the center of the scene
-		//model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));	// it's a bit too big for our scene, so scale it down
-		//soldiershader.setMat4("model", model);
-		//soldierModel.Draw(soldiershader);
 
 		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", soldierModel.GetModelMatrix());
 		soldierModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
