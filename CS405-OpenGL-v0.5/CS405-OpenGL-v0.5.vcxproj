@@ -27,9 +27,9 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="filesystem.h" />
     <ClInclude Include="model.h" />
+    <ClInclude Include="RecourceManager.h" />
     <ClInclude Include="shader.h" />
-    <ClInclude Include="shader_m.h" />
-    <ClInclude Include="shader_s.h" />
+    <ClInclude Include="texture.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -104,7 +104,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;$(SolutionDir)/../../External Libs/ASSIMP/include;$(SolutionDir)/Include/glad;$(SolutionDir)/Include/KHR;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;$(SolutionDir)/../../External Libs/ASSIMP/include;$(SolutionDir)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -125,7 +125,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;$(SolutionDir)/../../External Libs/ASSIMP/include;$(SolutionDir)/Include/glad;$(SolutionDir)/Include/KHR;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;$(SolutionDir)/../../External Libs/ASSIMP/include;$(SolutionDir)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -148,7 +148,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;$(SolutionDir)/../../External Libs/ASSIMP/include;$(SolutionDir)/Include/glad;$(SolutionDir)/Include/KHR;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;$(SolutionDir)/../../External Libs/ASSIMP/include;$(SolutionDir)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -173,7 +173,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;$(SolutionDir)/../../External Libs/ASSIMP/include;$(SolutionDir)/Include/glad;$(SolutionDir)/Include/KHR;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/../../External Libs/GLFW/include;$(SolutionDir)/../../External Libs/GLEW/include;$(SolutionDir)/../../External Libs/GLM;$(SolutionDir)/../../External Libs/ASSIMP/include;$(SolutionDir)/Include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

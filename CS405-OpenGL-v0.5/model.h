@@ -20,22 +20,31 @@
 #include <iostream>
 #include <map>
 #include <vector>
-using namespace std;
 
-unsigned int TextureFromFile(const char *path, const string &directory, bool gamma = false);
+
+unsigned int TextureFromFile(const char *path, const std::string &directory, bool gamma = false);
+
+enum MoveDirections {
+	M_UP,
+	M_DOWN,
+	M_LEFT,
+	M_RIGHT,
+	M_FORWARD,
+	M_BACKWARD
+};
 
 class Model
 {
 public:
 	/*  Model Data */
-	vector<Texture> textures_loaded;	// stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
-	vector<Mesh> meshes;
-	string directory;
+	std::vector<Texture> textures_loaded;	// stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
+	std::vector<Mesh> meshes;
+	std::string directory;
 	bool gammaCorrection;
 
 	/*  Functions   */
 	// constructor, expects a filepath to a 3D model.
-	Model(string const &path, bool gamma = false) : gammaCorrection(gamma)
+	Model(std::string const &path, bool gamma = false) : gammaCorrection(gamma)
 	{
 		loadModel(path);
 	}
@@ -51,11 +60,104 @@ public:
 		for (unsigned int i = 0; i < meshes.size(); i++)
 			meshes[i].Draw(shader);
 	}
+	
+	void ScaleModel(glm::vec3 scaleVector)
+	{
+		modelMatrix = glm::scale(modelMatrix, scaleVector);	// it's a bit too big for our scene, so scale it down
+	}
+
+	//void RotateModel(glm::vec3 rotateVector)
+	//{
+	//	modelMatrix = glm::rotate(modelMatrix, rotateVector);
+	//}*
+
+	void move(double deltaDistance, MoveDirections dir)
+	{
+		switch (dir)
+		{
+		case M_UP:
+			// Move UP
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, deltaDistance, 0.0f));
+			break;
+		case M_DOWN:
+			// Move DOWN
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -deltaDistance, 0.0f));
+			break;
+		case M_LEFT:
+			// Move LEFT
+			modelMatrix = glm::translate(-modelMatrix, glm::vec3(deltaDistance, 0.0f, 0.0f));
+			break;
+		case M_RIGHT:
+			// Move RIGHT
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(-deltaDistance, 0.0f, 0.0f));
+			break;
+		case M_FORWARD:
+			// Move FORWARD
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, deltaDistance));
+			break;
+		case M_BACKWARD:
+			// Move BACKWARD
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -deltaDistance));
+			break;
+		default:
+			break;
+		}
+	}
+
+	void moveRandom(double deltaDistance)
+	{
+		if (frameCounter % 30 == 0)
+		{
+			randDirection = rand() % 5;
+			frameCounter = 0;
+		}
+		frameCounter++;
+
+		switch (randDirection)
+		{
+		case 0:
+			// move up
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, deltaDistance));
+			break;
+		case 1:
+			// move down
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -deltaDistance));
+			break;
+		case 2:
+			// move right
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(deltaDistance, 0.0f, 0.0f));
+			break;
+		case 3:
+			// move left
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(-deltaDistance, 0.0f, 0.0f));
+			break;
+		case 4:
+			// move forward
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, deltaDistance, 0.0f));
+			break;
+		case 5:
+			// move backward
+			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -deltaDistance, 0.0f));
+			break;
+		default:
+			break;
+		}
+	}
+
+	glm::mat4 GetModelMatrix()
+	{
+		return modelMatrix;
+	}
 
 private:
+	/*  Model Data  */
+	glm::mat4 modelMatrix;
+	int randDirection;
+	int frameCounter;
+
 	/*  Functions   */
 	// loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
-	void loadModel(string const &path)
+	void loadModel(std::string const &path)
 	{
 		// read file via ASSIMP
 		Assimp::Importer importer;
@@ -63,7 +165,7 @@ private:
 		// check for errors
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
 		{
-			cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << endl;
+			std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
 			return;
 		}
 		// retrieve the directory path of the filepath
@@ -71,6 +173,10 @@ private:
 
 		// process ASSIMP's root node recursively
 		processNode(scene->mRootNode, scene);
+
+		// Set model matrix to initial value;
+		modelMatrix = glm::mat4(1.0f);
+		frameCounter = 0;
 	}
 
 	// processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
@@ -95,9 +201,9 @@ private:
 	Mesh processMesh(aiMesh *mesh, const aiScene *scene)
 	{
 		// data to fill
-		vector<Vertex> vertices;
-		vector<unsigned int> indices;
-		vector<Texture> textures;
+		std::vector<Vertex> vertices;
+		std::vector<unsigned int> indices;
+		std::vector<Texture> textures;
 
 		// Walk through each of the mesh's vertices
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -156,10 +262,10 @@ private:
 		// normal: texture_normalN
 
 		// 1. diffuse maps
-		vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
+		std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
 		textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
 		// 2. specular maps
-		vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
+		std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
 		textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 		// 3. normal maps
 		std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
@@ -174,9 +280,9 @@ private:
 
 	// checks all material textures of a given type and loads the textures if they're not loaded yet.
 	// the required info is returned as a Texture struct.
-	vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, string typeName)
+	std::vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, std::string typeName)
 	{
-		vector<Texture> textures;
+		std::vector<Texture> textures;
 		for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
 		{
 			aiString str;
@@ -207,9 +313,9 @@ private:
 };
 
 
-unsigned int TextureFromFile(const char *path, const string &directory, bool gamma)
+unsigned int TextureFromFile(const char *path, const std::string &directory, bool gamma)
 {
-	string filename = string(path);
+	std::string filename = std::string(path);
 	//filename = directory + '/' + filename;
 
 	unsigned int textureID;
