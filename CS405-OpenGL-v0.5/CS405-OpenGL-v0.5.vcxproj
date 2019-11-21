@@ -27,8 +27,10 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="filesystem.h" />
     <ClInclude Include="model.h" />
+    <ClInclude Include="GameObject.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="shader.h" />
+    <ClInclude Include="StringTable.h" />
     <ClInclude Include="texture.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

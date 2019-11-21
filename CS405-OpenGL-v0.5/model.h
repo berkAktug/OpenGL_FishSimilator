@@ -13,6 +13,7 @@
 #include "mesh.h"
 #include "shader.h"
 
+#include "GameObject.h"
 
 #include <string>
 #include <fstream>
@@ -21,8 +22,22 @@
 #include <map>
 #include <vector>
 
-
 unsigned int TextureFromFile(const char *path, const std::string &directory, bool gamma = false);
+
+struct boundingboxDimension {
+	double max_x;
+	double max_y;
+	double max_z;
+
+	double min_y;
+	double min_z;
+	double min_x;
+
+	boundingboxDimension() : max_x(1), max_y(1), max_z(1), min_x(0), min_y(0), min_z(0)
+	{
+	}
+};
+
 
 enum MoveDirections {
 	M_UP,
@@ -41,33 +56,92 @@ public:
 	std::vector<Mesh> meshes;
 	std::string directory;
 	bool gammaCorrection;
+	int ID;
 
 	/*  Functions   */
 	// constructor, expects a filepath to a 3D model.
 	Model(std::string const &path, bool gamma = false) : gammaCorrection(gamma)
 	{
+		Point point = getRandomPoint();
+		boxDimensions = boundingboxDimension();
+			
 		loadModel(path);
+		
+		ID = rand() % 1000;
+
+		ObjectBound dimensions = ObjectBound(
+			abs(boxDimensions.max_y - boxDimensions.min_y),
+			abs(boxDimensions.max_z - boxDimensions.min_z),
+			abs(boxDimensions.max_x - boxDimensions.min_x)
+		);
+
+		this->modelObject = GameObject(point, dimensions);
+
+		// Set model matrix to initial value;
+		this->modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(point.x, point.y, point.z));
+
+		//this->modelMatrix = glm::scale(modelMatrix, glm::vec3(dimensions.width, dimensions.height, dimensions.width));
+		frameCounter = 0;
 	}
 
-	//void clearAllTextures()
-	//{
-	//	textures_loaded.clear();
-	//}
 
-	//void addTexture(std::string path, std::string type = "texture_diffuse")
-	//{
-	//	// THIS ASSUMES THERE ARE NO DELETE OPERATIONS IN THE VECTOR
-	//	auto temp_id = textures_loaded.size() + 1;
-	//	Texture temp;
-	//	temp.id = temp_id;
-	//	temp.path = path;
-	//	temp.type = type;
-	//	textures_loaded.push_back(temp);
-	//}
-
-	void addTexture(Texture texture) 
+	void setFloor()
 	{
-		textures_loaded.push_back(texture);
+		auto pos = modelObject.getCenter();
+		modelMatrix = glm::translate(modelMatrix, glm::vec3(-pos.x, -pos.y, -pos.z));
+		modelObject.setFloor();
+	}
+
+	void printPosition()
+	{
+		std::cout << "Object "<< ID <<" is at~~"
+			<< " x: " << modelObject.getCenter().x
+			<< " y: " << modelObject.getCenter().y
+			<< " z: " << modelObject.getCenter().z
+			<< " height: " << modelObject.getBoundry().height
+			<< " width: " << modelObject.getBoundry().width
+			<< " depth: " << modelObject.getBoundry().depth << std::endl;
+	}
+
+	bool isFloorObj()
+	{
+		return modelObject.getIsFloor();
+	}
+
+	void doCollision(Model &other)
+	{
+		if (this->ID == other.ID)
+		{
+			return;
+		}
+		if (modelObject.doCollision(other.modelObject))
+		{
+			std::cout << "Collision between OBJ1: " << ID << " And OBJ2: " << other.ID << std::endl;
+			printPosition();
+			other.printPosition();
+			if (this->isFloorObj())
+			{
+				// :)
+				auto escape_velocity = 5.5f;
+				other.move(escape_velocity, M_UP);
+			}
+			else if (other.isFloorObj())
+			{
+				auto escape_velocity = 5.5f;
+				this->move(escape_velocity, M_UP);
+			}
+			else
+			{
+				auto lpos = this->modelObject.getCenter();
+				auto rpos = other.modelObject.getCenter();
+
+				auto lspeed = glm::vec3(rpos.x - lpos.x, rpos.y - lpos.y, rpos.z - lpos.z);
+				auto rspeed = -lspeed;
+
+				this->move(-lspeed);
+				other.move(-rspeed);
+			}
+		}
 	}
 
 	// draws the model, and thus all its meshes
@@ -76,91 +150,111 @@ public:
 		for (unsigned int i = 0; i < meshes.size(); i++)
 			meshes[i].Draw(shader);
 	}
-	
+
 	void ScaleModel(glm::vec3 scaleVector)
 	{
+		modelObject.scaleBoundry(scaleVector);
 		modelMatrix = glm::scale(modelMatrix, scaleVector);	// it's a bit too big for our scene, so scale it down
 	}
 
-	//void RotateModel(glm::vec3 rotateVector)
-	//{
-	//	modelMatrix = glm::rotate(modelMatrix, rotateVector);
-	//}*
+	void move(glm::vec3 speed)
+	{
+		//printPosition();
+		modelMatrix = glm::translate(modelMatrix, speed);
+		modelObject.setSpeed(speed);
+		modelObject.move();
+	}
 
 	void move(double deltaDistance, MoveDirections dir)
 	{
+		//printPosition();
+		glm::vec3 tmp_vel;
 		switch (dir)
 		{
 		case M_UP:
 			// Move UP
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, deltaDistance, 0.0f));
+			tmp_vel = glm::vec3(0.0f, deltaDistance, 0.0f);
+			modelObject.setSpeed(tmp_vel);
+			modelObject.move();
+			modelMatrix = glm::translate(modelMatrix, tmp_vel);
 			break;
 		case M_DOWN:
 			// Move DOWN
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -deltaDistance, 0.0f));
+			tmp_vel = glm::vec3(0.0f, -deltaDistance, 0.0f);
+			modelObject.setSpeed(tmp_vel);
+			modelObject.move();
+			modelMatrix = glm::translate(modelMatrix, tmp_vel);
 			break;
 		case M_LEFT:
 			// Move LEFT
-			modelMatrix = glm::translate(-modelMatrix, glm::vec3(deltaDistance, 0.0f, 0.0f));
+			tmp_vel = glm::vec3(deltaDistance, 0.0f, 0.0f);
+			modelObject.setSpeed(tmp_vel);
+			modelObject.move();
+			modelMatrix = glm::translate(modelMatrix, tmp_vel);
 			break;
 		case M_RIGHT:
 			// Move RIGHT
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(-deltaDistance, 0.0f, 0.0f));
+			tmp_vel = glm::vec3(-deltaDistance, 0.0f, 0.0f);
+			modelObject.setSpeed(tmp_vel);
+			modelObject.move();
+			modelMatrix = glm::translate(modelMatrix, tmp_vel);
 			break;
 		case M_FORWARD:
 			// Move FORWARD
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, deltaDistance));
+			tmp_vel = glm::vec3(0.0f, 0.0f, deltaDistance);
+			modelObject.setSpeed(tmp_vel);
+			modelObject.move();
+			modelMatrix = glm::translate(modelMatrix, tmp_vel);
 			break;
 		case M_BACKWARD:
 			// Move BACKWARD
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -deltaDistance));
+			tmp_vel = glm::vec3(0.0f, 0.0f, -deltaDistance);
+			modelObject.setSpeed(tmp_vel);
+			modelObject.move();
+			modelMatrix = glm::translate(modelMatrix, tmp_vel);
 			break;
 		default:
 			break;
 		}
+		//modelObject.move(tmp_vel);
+		//modelMatrix = glm::translate(modelMatrix, tmp_vel);
 	}
 
 	void moveRandom(double deltaDistance)
 	{
 		if (frameCounter % 30 == 0)
 		{
-			randDirection = rand() % 5;
 			frameCounter = 0;
+			randDirection = rand() % 5;
 		}
-		frameCounter++;
+		frameCounter++;			
 
 		switch (randDirection)
 		{
-		case 0:
-			// move up
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, deltaDistance, 0.0f));
+		case 0: // move up
+			move(deltaDistance, M_UP);
 			break;
-		case 1:
-			// move down
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -deltaDistance, 0.0f));
+		case 1:// move down
+			move(deltaDistance, M_DOWN);
 			break;
-		case 2:
-			// move right
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(deltaDistance, 0.0f, 0.0f));
+		case 2:// move left
+			move(deltaDistance, M_LEFT);
 			break;
-		case 3:
-			// move left
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(-deltaDistance, 0.0f, 0.0f));
+		case 3:// move right
+			move(deltaDistance, M_RIGHT);
 			break;
-		case 4:
-			// move forward
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, deltaDistance));
+		case 4:// move forward
+			move(deltaDistance, M_FORWARD);
 			break;
-		case 5:
-			// move backward
-			modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, -deltaDistance));
+		case 5:// move backward
+			move(deltaDistance, M_BACKWARD);
 			break;
 		default:
 			break;
 		}
 	}
 
-	glm::mat4 GetModelMatrix()
+	const glm::mat4 GetModelMatrix() const
 	{
 		return modelMatrix;
 	}
@@ -171,7 +265,30 @@ private:
 	int randDirection;
 	int frameCounter;
 
+	GameObject modelObject;
+
+	boundingboxDimension boxDimensions;
+
+
 	/*  Functions   */
+	Point getRandomPoint()
+	{
+		auto randx = rand() % 3;
+		auto randy = rand() % 3;
+		auto randz = rand() % 3;
+
+		auto randsignx = rand() % 2;
+		auto randsignz = rand() % 2;
+
+		if (randsignx == 0) randsignx *= -1;
+		if (randsignz == 0) randsignz *= -1;
+
+		randx *= randsignx;
+		randz *= randsignz;
+
+		return Point(randx, randy, randz);
+	}
+
 	// loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
 	void loadModel(std::string const &path)
 	{
@@ -189,10 +306,6 @@ private:
 
 		// process ASSIMP's root node recursively
 		processNode(scene->mRootNode, scene);
-
-		// Set model matrix to initial value;
-		modelMatrix = glm::mat4(1.0f);
-		frameCounter = 0;
 	}
 
 	// processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
@@ -231,6 +344,15 @@ private:
 			vector.y = mesh->mVertices[i].y;
 			vector.z = mesh->mVertices[i].z;
 			vertex.Position = vector;
+			//////////////////////////////////////
+			if (boxDimensions.min_x > vector.x) { boxDimensions.min_x = vector.x; }
+			if (boxDimensions.min_y > vector.y) { boxDimensions.min_y = vector.x; }
+			if (boxDimensions.min_z > vector.z) { boxDimensions.min_z = vector.z; }
+
+			if (boxDimensions.max_x < vector.x) { boxDimensions.max_x = vector.x; }
+			if (boxDimensions.max_y < vector.y) { boxDimensions.max_y = vector.x; }
+			if (boxDimensions.max_z < vector.z) { boxDimensions.max_z = vector.z; }
+			//////////////////////////////////////
 			// normals
 			vector.x = mesh->mNormals[i].x;
 			vector.y = mesh->mNormals[i].y;
@@ -368,4 +490,19 @@ unsigned int TextureFromFile(const char *path, const std::string &directory, boo
 
 	return textureID;
 }
+
+// Operator Overload: Is Equal checks.
+inline bool operator==(const Model& lhs, const Model& rhs)
+{
+	if (lhs.directory == rhs.directory)
+	{
+		if (lhs.GetModelMatrix() == rhs.GetModelMatrix())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+inline bool operator!=(const Model& lhs, const Model& rhs) { return !(lhs == rhs); }
+
 #endif

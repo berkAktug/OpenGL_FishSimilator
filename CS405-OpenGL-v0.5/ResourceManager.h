@@ -18,7 +18,13 @@ public:
 	// Retrieves a stored sader
 	static Shader   GetShader(std::string name);
 	// Loads (and generates) a texture from file
+
+
+	// Possible bug here.
 	static Texture3D LoadTexture(const GLchar *file, GLboolean alpha, std::string name);
+	
+	
+	
 	// Retrieves a stored texture
 	static Texture3D GetTexture(std::string name);
 	// Properly de-allocates all loaded resources
