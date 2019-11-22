@@ -1,14 +1,14 @@
 #ifndef GAMEOBJECT_H
 #define GAMEOBJECT_H
 
-struct Point {
+struct Point2 {
 	double x;
 	double y;
 	double z;
 
-	Point() : x(), y(), z() { }
+	Point2() : x(), y(), z() { }
 
-	Point(double x, double y, double z) : x(x), y(y), z(z) { }
+	Point2(double x, double y, double z) : x(x), y(y), z(z) { }
 
 	void move(glm::vec3 velocity)
 	{
@@ -30,8 +30,8 @@ struct ObjectBound {
 class GameObject
 {
 public:
-	GameObject() : center(Point()), boundry(ObjectBound()) { isFloor = false; }
-	GameObject(Point center, ObjectBound boundry);
+	GameObject() : center(Point2()), boundry(ObjectBound()) { isFloor = false; }
+	GameObject(Point2 center, ObjectBound boundry);
 	~GameObject();
 
 	void move();
@@ -42,7 +42,7 @@ public:
 		return vel;
 	}
 
-	bool doCollision(GameObject &other);
+	bool doCollusion(GameObject &other);
 
 	void setFloor()
 	{
@@ -70,13 +70,13 @@ public:
 		return isFloor;
 	}
 
-	Point getCenter();
+	Point2 getCenter();
 	ObjectBound getBoundry();
 	void scaleBoundry(glm::vec3 scale);
 
 private:
 	/*  Object Position data  */
-	Point center;
+	Point2 center;
 	/*  Object Outer Boundry data  */
 	ObjectBound boundry;
 	/*  Object Speed  */
@@ -88,10 +88,10 @@ private:
 
 	bool isFloor;
 
-	bool checkCollision(GameObject &other);
+	bool checkCollusion(GameObject &other);
 };
 
-GameObject::GameObject(Point center, ObjectBound boundry) : center(center), boundry(boundry)
+GameObject::GameObject(Point2 center, ObjectBound boundry) : center(center), boundry(boundry)
 {
 	isFloor = false;
 }
@@ -110,12 +110,12 @@ void GameObject::move(glm::vec3 velocity)
 	center.move(velocity);
 }
 
-bool GameObject::doCollision(GameObject &other)
+bool GameObject::doCollusion(GameObject &other)
 {
-	return checkCollision(other);
+	return checkCollusion(other);
 }
 
-bool GameObject::checkCollision(GameObject &other)
+bool GameObject::checkCollusion(GameObject &other)
 {
 	auto lmax_x = this->center.x + this->boundry.depth;
 	auto lmax_y = this->center.y + this->boundry.height;
@@ -135,8 +135,8 @@ bool GameObject::checkCollision(GameObject &other)
 		&& (lmin_y <= rmax_y && lmax_y >= rmax_y || rmin_y < lmax_y && rmax_y > lmax_y)
 		&& (lmin_z <= rmax_z && lmax_y >= rmax_z || rmin_z < lmax_z && rmax_z > lmax_z))
 	{
-		// Collision
-		//printf("Collision Detected\n");
+		// Collusion
+		//printf("Collusion Detected\n");
 		return true;
 	}
 	return false;
@@ -148,13 +148,13 @@ bool GameObject::checkCollision(GameObject &other)
 	////	this->center.z < other.center.z + other.boundry.depth  &&
 	////	this->center.z + this->boundry.depth > other.center.z)
 	////{
-	////	printf("Collision Detected\n");
+	////	printf("Collusion Detected\n");
 	////	return true;
 	////}
 	//return false;
 }
 
-Point GameObject::getCenter()
+Point2 GameObject::getCenter()
 {
 	return center;
 }

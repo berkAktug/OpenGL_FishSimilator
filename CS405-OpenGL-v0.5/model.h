@@ -13,7 +13,7 @@
 #include "mesh.h"
 #include "shader.h"
 
-#include "GameObject.h"
+#include "CollusionBox.h"
 
 #include <string>
 #include <fstream>
@@ -23,21 +23,6 @@
 #include <vector>
 
 unsigned int TextureFromFile(const char *path, const std::string &directory, bool gamma = false);
-
-struct boundingboxDimension {
-	double max_x;
-	double max_y;
-	double max_z;
-
-	double min_y;
-	double min_z;
-	double min_x;
-
-	boundingboxDimension() : max_x(1), max_y(1), max_z(1), min_x(0), min_y(0), min_z(0)
-	{
-	}
-};
-
 
 enum MoveDirections {
 	M_UP,
@@ -63,19 +48,11 @@ public:
 	Model(std::string const &path, bool gamma = false) : gammaCorrection(gamma)
 	{
 		Point point = getRandomPoint();
-		boxDimensions = boundingboxDimension();
-			
+		cage = CollusionBox();
+		
 		loadModel(path);
 		
 		ID = rand() % 1000;
-
-		ObjectBound dimensions = ObjectBound(
-			abs(boxDimensions.max_y - boxDimensions.min_y),
-			abs(boxDimensions.max_z - boxDimensions.min_z),
-			abs(boxDimensions.max_x - boxDimensions.min_x)
-		);
-
-		this->modelObject = GameObject(point, dimensions);
 
 		// Set model matrix to initial value;
 		this->modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(point.x, point.y, point.z));
@@ -84,64 +61,36 @@ public:
 		frameCounter = 0;
 	}
 
-
 	void setFloor()
 	{
-		auto pos = modelObject.getCenter();
-		modelMatrix = glm::translate(modelMatrix, glm::vec3(-pos.x, -pos.y, -pos.z));
-		modelObject.setFloor();
+		cage.setImmoveable();
+		boxLimits floor = cage.getCollusionBox();
+
+		auto posx = floor.max_x - floor.min_x;
+		auto posy = floor.max_y - floor.min_y;
+		auto posz = floor.max_z - floor.min_z;
+
+		floor.max_y =  0.001;
+		floor.min_y = -0.001;
+
+		modelMatrix = glm::translate(modelMatrix, glm::vec3(-posx /2, -posy /2, -posz /2));
 	}
 
 	void printPosition()
 	{
-		std::cout << "Object "<< ID <<" is at~~"
-			<< " x: " << modelObject.getCenter().x
-			<< " y: " << modelObject.getCenter().y
-			<< " z: " << modelObject.getCenter().z
-			<< " height: " << modelObject.getBoundry().height
-			<< " width: " << modelObject.getBoundry().width
-			<< " depth: " << modelObject.getBoundry().depth << std::endl;
+		std::cout << "Object " << ID << " is at~~";
+		cage.printBox();
 	}
-
-	bool isFloorObj()
-	{
-		return modelObject.getIsFloor();
-	}
-
-	void doCollision(Model &other)
+	
+	void doCollusion(Model &other)
 	{
 		if (this->ID == other.ID)
 		{
 			return;
 		}
-		if (modelObject.doCollision(other.modelObject))
-		{
-			std::cout << "Collision between OBJ1: " << ID << " And OBJ2: " << other.ID << std::endl;
-			printPosition();
-			other.printPosition();
-			if (this->isFloorObj())
-			{
-				// :)
-				auto escape_velocity = 5.5f;
-				other.move(escape_velocity, M_UP);
-			}
-			else if (other.isFloorObj())
-			{
-				auto escape_velocity = 5.5f;
-				this->move(escape_velocity, M_UP);
-			}
-			else
-			{
-				auto lpos = this->modelObject.getCenter();
-				auto rpos = other.modelObject.getCenter();
-
-				auto lspeed = glm::vec3(rpos.x - lpos.x, rpos.y - lpos.y, rpos.z - lpos.z);
-				auto rspeed = -lspeed;
-
-				this->move(-lspeed);
-				other.move(-rspeed);
-			}
-		}
+		cage.doCollusionAABB(other.cage);
+		modelMatrix = glm::translate(modelMatrix, cage.getVelocity());
+		other.modelMatrix = glm::translate(other.modelMatrix,other.cage.getVelocity());
 	}
 
 	// draws the model, and thus all its meshes
@@ -153,71 +102,47 @@ public:
 
 	void ScaleModel(glm::vec3 scaleVector)
 	{
-		modelObject.scaleBoundry(scaleVector);
-		modelMatrix = glm::scale(modelMatrix, scaleVector);	// it's a bit too big for our scene, so scale it down
+		cage.scale(scaleVector);
+		modelMatrix = glm::scale(modelMatrix, scaleVector);	
 	}
 
 	void move(glm::vec3 speed)
 	{
 		//printPosition();
+		cage.setVelocity(speed);
+		cage.move();
+		cage.stopMovement();
 		modelMatrix = glm::translate(modelMatrix, speed);
-		modelObject.setSpeed(speed);
-		modelObject.move();
 	}
 
 	void move(double deltaDistance, MoveDirections dir)
 	{
 		//printPosition();
-		glm::vec3 tmp_vel;
+		glm::vec3 vel = glm::vec3(0.0f, 0.0f, 0.0f);
 		switch (dir)
 		{
 		case M_UP:
-			// Move UP
-			tmp_vel = glm::vec3(0.0f, deltaDistance, 0.0f);
-			modelObject.setSpeed(tmp_vel);
-			modelObject.move();
-			modelMatrix = glm::translate(modelMatrix, tmp_vel);
+			vel = glm::vec3(0.0f, deltaDistance, 0.0f);
 			break;
 		case M_DOWN:
-			// Move DOWN
-			tmp_vel = glm::vec3(0.0f, -deltaDistance, 0.0f);
-			modelObject.setSpeed(tmp_vel);
-			modelObject.move();
-			modelMatrix = glm::translate(modelMatrix, tmp_vel);
+			vel = glm::vec3(0.0f, -deltaDistance, 0.0f);
 			break;
 		case M_LEFT:
-			// Move LEFT
-			tmp_vel = glm::vec3(deltaDistance, 0.0f, 0.0f);
-			modelObject.setSpeed(tmp_vel);
-			modelObject.move();
-			modelMatrix = glm::translate(modelMatrix, tmp_vel);
+			vel = glm::vec3(deltaDistance, 0.0f, 0.0f);
 			break;
 		case M_RIGHT:
-			// Move RIGHT
-			tmp_vel = glm::vec3(-deltaDistance, 0.0f, 0.0f);
-			modelObject.setSpeed(tmp_vel);
-			modelObject.move();
-			modelMatrix = glm::translate(modelMatrix, tmp_vel);
+			vel = glm::vec3(-deltaDistance, 0.0f, 0.0f);
 			break;
 		case M_FORWARD:
-			// Move FORWARD
-			tmp_vel = glm::vec3(0.0f, 0.0f, deltaDistance);
-			modelObject.setSpeed(tmp_vel);
-			modelObject.move();
-			modelMatrix = glm::translate(modelMatrix, tmp_vel);
+			vel = glm::vec3(0.0f, 0.0f, deltaDistance);
 			break;
 		case M_BACKWARD:
-			// Move BACKWARD
-			tmp_vel = glm::vec3(0.0f, 0.0f, -deltaDistance);
-			modelObject.setSpeed(tmp_vel);
-			modelObject.move();
-			modelMatrix = glm::translate(modelMatrix, tmp_vel);
+			vel = glm::vec3(0.0f, 0.0f, -deltaDistance);
 			break;
 		default:
 			break;
 		}
-		//modelObject.move(tmp_vel);
-		//modelMatrix = glm::translate(modelMatrix, tmp_vel);
+		move(vel);
 	}
 
 	void moveRandom(double deltaDistance)
@@ -225,7 +150,7 @@ public:
 		if (frameCounter % 30 == 0)
 		{
 			frameCounter = 0;
-			randDirection = rand() % 5;
+			randDirection = rand() % 6;
 		}
 		frameCounter++;			
 
@@ -265,26 +190,20 @@ private:
 	int randDirection;
 	int frameCounter;
 
-	GameObject modelObject;
-
-	boundingboxDimension boxDimensions;
-
+	CollusionBox cage;
 
 	/*  Functions   */
 	Point getRandomPoint()
 	{
-		auto randx = rand() % 3;
-		auto randy = rand() % 3;
-		auto randz = rand() % 3;
+		double randx = rand() % 7;
+		double randy = rand() % 7;
+		double randz = rand() % 7;
 
-		auto randsignx = rand() % 2;
-		auto randsignz = rand() % 2;
+		int randsignx = rand() % 2;
+		int randsignz = rand() % 2;
 
-		if (randsignx == 0) randsignx *= -1;
-		if (randsignz == 0) randsignz *= -1;
-
-		randx *= randsignx;
-		randz *= randsignz;
+		if (randsignx == 0) randx *= -1.0;
+		if (randsignz == 0) randz *= -1.0;
 
 		return Point(randx, randy, randz);
 	}
@@ -345,13 +264,9 @@ private:
 			vector.z = mesh->mVertices[i].z;
 			vertex.Position = vector;
 			//////////////////////////////////////
-			if (boxDimensions.min_x > vector.x) { boxDimensions.min_x = vector.x; }
-			if (boxDimensions.min_y > vector.y) { boxDimensions.min_y = vector.x; }
-			if (boxDimensions.min_z > vector.z) { boxDimensions.min_z = vector.z; }
 
-			if (boxDimensions.max_x < vector.x) { boxDimensions.max_x = vector.x; }
-			if (boxDimensions.max_y < vector.y) { boxDimensions.max_y = vector.x; }
-			if (boxDimensions.max_z < vector.z) { boxDimensions.max_z = vector.z; }
+			cage.setupCollusionBox(vector);
+
 			//////////////////////////////////////
 			// normals
 			vector.x = mesh->mNormals[i].x;

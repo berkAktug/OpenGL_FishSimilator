@@ -53,5 +53,8 @@
     <ClInclude Include="StringTable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CollusionBox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -170,7 +170,7 @@ int main()
 		{
 			for (auto model2 : modelList)
 			{
-				model.doCollision(model2);
+				model.doCollusion(model2);
 			}
 		}
 		processInputForObject(window, cyborgModel, obj_speed);

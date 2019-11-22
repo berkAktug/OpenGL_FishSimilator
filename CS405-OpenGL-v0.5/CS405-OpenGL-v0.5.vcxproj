@@ -25,6 +25,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="CollusionBox.h" />
     <ClInclude Include="filesystem.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="GameObject.h" />
