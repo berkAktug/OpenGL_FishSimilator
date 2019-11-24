@@ -15,7 +15,7 @@
 
 #include "StringTable.h"
 
-#include "GameObject.h"
+//#include "GameObject.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -99,19 +99,21 @@ int main()
 		FILE_SHADER_FRAGMENT_SKYBOX.c_str(), nullptr, KEY_SHADER_SKYBOX);
 
 	auto cyborgModel = Model(FILE_OBJECT_CYBORG);
-	//auto soldierModel = Model(FILE_OBJECT_NANOSUIT);
+	auto soldierModel = Model(FILE_OBJECT_NANOSUIT);
 	auto flatCubeModel = Model(FILE_OBJECT_FLATPLANE);
+	//auto cubeModel = Model(FILE_OBJECT_FLATPLANE);
 
 	flatCubeModel.setFloor();
 
-	//auto coinModel = Model(FILE_OBJECT_COIN);
+	auto coinModel = Model(FILE_OBJECT_COIN);
 
 	
 	cyborgModel.ID = 0;
-	//soldierModel.ID = 1;
+	soldierModel.ID = 1;
 	flatCubeModel.ID = 2;
-	//coinModel.ID = 3;
-	
+	coinModel.ID = 3;
+	//cubeModel.ID = 4;
+
 	ResourceManager::LoadShader(FILE_SHADER_VERTEX_STANDARD_OBJECT.c_str(),
 		FILE_SHADER_FRAGMENT_STANDART_OBJECT.c_str(), nullptr, KEY_SHADER_OBJECT);
 
@@ -131,24 +133,34 @@ int main()
 	auto scaleFlatPlane = glm::vec3(20.0f, 0.001f, 20.0f);
 	auto scaleCoin = glm::vec3(0.01f, 0.01f, 0.01f);
 
-	//cyborgModel.printPosition();
-	//soldierModel.printPosition();
-	//flatCubeModel.printPosition();
-	//coinModel.printPosition();
+	cyborgModel.printPosition();
+	soldierModel.printPosition();
+	flatCubeModel.printPosition();
+	coinModel.printPosition();
 
 	cyborgModel.ScaleModel(scaleCyborg);
-	//soldierModel.ScaleModel(scaleSoldier);
+	soldierModel.ScaleModel(scaleSoldier);
 	flatCubeModel.ScaleModel(scaleFlatPlane);
-	//coinModel.ScaleModel(scaleCoin);
+	coinModel.ScaleModel(scaleCoin);
+
+	std::cout << std::endl;
+
+	cyborgModel.printPosition();
+	soldierModel.printPosition();
+	flatCubeModel.printPosition();
+	coinModel.printPosition();
+
 
 	// frame counter for random movement
 	// ---------------
 
 	std::vector<Model> modelList;
-	//modelList.push_back(soldierModel);
-	//modelList.push_back(coinModel);
+	modelList.push_back(soldierModel);
+	modelList.push_back(coinModel);
 	modelList.push_back(cyborgModel);
 	modelList.push_back(flatCubeModel);
+
+	soldierModel.setRandomMovement(true);
 
 	// render loop
 	// -----------
@@ -160,19 +172,16 @@ int main()
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
-		int ismoving = rand() % 2;
-		double dt_distance = obj_speed * ismoving;
-
 		// input
 		// -----
 		processInput(window);
-		for (auto model : modelList)
-		{
-			for (auto model2 : modelList)
-			{
-				model.doCollusion(model2);
-			}
-		}
+		//for (int i = 0; i < modelList.size(); i++)
+		//{
+		//	for (int j = i; j < modelList.size(); j++)
+		//	{
+		//		modelList[i].doCollusion(modelList[j]);
+		//	}
+		//}
 		processInputForObject(window, cyborgModel, obj_speed);
 
 		// render
@@ -181,7 +190,6 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// don't forget to enable shader before setting uniforms
-		//soldiershader.use();
 		ResourceManager::GetShader(KEY_SHADER_OBJECT).use();
 
 		// view/projection transformations
@@ -195,26 +203,23 @@ int main()
 		//// render the loaded model
 		//for (auto model : modelList)
 		//{
-		//	//model.moveRandom(dt_distance);
+		//	model.moveRandom(dt_distance);
 		//	ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", model.GetModelMatrix());
 		//	model.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		//}
-		//cyborgModel.moveRandom(dt_distance);
+
 		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", cyborgModel.GetModelMatrix());
-		cyborgModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
-
-		//soldierModel.moveRandom(dt_distance);
+		cyborgModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+		
 		//ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", soldierModel.GetModelMatrix());
-		//soldierModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+		//soldierModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 
-		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", flatCubeModel.GetModelMatrix());
-		flatCubeModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+		//ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", flatCubeModel.GetModelMatrix());
+		//flatCubeModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 
-		//coinModel.moveRandom(dt_distance);
 		//ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", coinModel.GetModelMatrix());
-		//coinModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
-
-
+		//coinModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+		
 		// draw skybox as last
 		glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
 		ResourceManager::GetShader(KEY_SHADER_SKYBOX).use();
@@ -244,11 +249,6 @@ int main()
 
 	glfwTerminate();
 	return 0;
-}
-
-void display()
-{
-
 }
 
 unsigned int skyboxInit()
@@ -357,27 +357,27 @@ void processInputForObject(GLFWwindow * window, Model &model, double deltaDistan
 {
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
 	{
-		model.move(deltaDistance, M_FORWARD);
+		model.move(M_FORWARD);
 	}
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
 	{
-		model.move(deltaDistance, M_BACKWARD);
+		model.move(M_BACKWARD);
 	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
 	{
-		model.move(deltaDistance, M_LEFT);
+		model.move(M_LEFT);
 	}
 	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
 	{
-		model.move(deltaDistance, M_RIGHT);
+		model.move(M_RIGHT);
 	}
 	if (glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
 	{
-		model.move(deltaDistance, M_UP);
+		model.move(M_UP);
 	}
 	if (glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS)
 	{
-		model.move(deltaDistance, M_DOWN);
+		model.move(M_DOWN);
 	}
 
 }

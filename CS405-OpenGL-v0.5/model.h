@@ -47,11 +47,16 @@ public:
 	// constructor, expects a filepath to a 3D model.
 	Model(std::string const &path, bool gamma = false) : gammaCorrection(gamma)
 	{
-		Point point = getRandomPoint();
+		Point point = _getRandomPoint();
 		cage = CollusionBox();
 		
+		velocity = glm::vec3(0.0f);
+		acceleration = glm::vec3(0.0f);
+
 		loadModel(path);
 		
+		cage.setupCollusionSphere();
+
 		ID = rand() % 1000;
 
 		// Set model matrix to initial value;
@@ -66,12 +71,15 @@ public:
 		cage.setImmoveable();
 		boxLimits floor = cage.getCollusionBox();
 
-		auto posx = floor.max_x - floor.min_x;
-		auto posy = floor.max_y - floor.min_y;
-		auto posz = floor.max_z - floor.min_z;
+		auto posx = floor.max.x - floor.min.x;
+		auto posy = floor.max.y - floor.min.y;
+		auto posz = floor.max.z - floor.min.z;
 
-		floor.max_y =  0.001;
-		floor.min_y = -0.001;
+		floor.max.y =  0.001;
+		floor.min.y = -0.001;
+
+		velocity = ZERO_VECTOR;
+		acceleration = ZERO_VECTOR;
 
 		modelMatrix = glm::translate(modelMatrix, glm::vec3(-posx /2, -posy /2, -posz /2));
 	}
@@ -89,16 +97,15 @@ public:
 			return;
 		}
 		cage.doCollusionAABB(other.cage);
-		modelMatrix = glm::translate(modelMatrix, cage.getVelocity());
-		other.modelMatrix = glm::translate(other.modelMatrix,other.cage.getVelocity());
+
+		this->velocity = cage.getVelocity();
+		other.velocity = other.cage.getVelocity();
+
+		this->_move();
+		other._move();
 	}
 
 	// draws the model, and thus all its meshes
-	void Draw(Shader shader)
-	{
-		for (unsigned int i = 0; i < meshes.size(); i++)
-			meshes[i].Draw(shader);
-	}
 
 	void ScaleModel(glm::vec3 scaleVector)
 	{
@@ -106,77 +113,71 @@ public:
 		modelMatrix = glm::scale(modelMatrix, scaleVector);	
 	}
 
-	void move(glm::vec3 speed)
+	void update(Shader shader)
 	{
-		//printPosition();
-		cage.setVelocity(speed);
-		cage.move();
-		cage.stopMovement();
-		modelMatrix = glm::translate(modelMatrix, speed);
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+		
+		if(velocity.z != 0 || acceleration.z != 0)
+		std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+
+		if (! cage.isMoveable())
+		{
+			// Do nothing. object is not able to move.
+		}
+		else if (isRandomMovement)
+		{
+			_moveRandom();
+		}
+		else
+		{
+			_move();
+		}
+		_applyFriction();
+		_adjustVelocity();
+
+		_Draw(shader);
+	}
+	
+	bool getRandomMovmeent()
+	{
+		return isRandomMovement;
 	}
 
-	void move(double deltaDistance, MoveDirections dir)
+	void setRandomMovement(bool isRandom)
+	{
+		isRandomMovement = isRandom;
+	}
+
+	void move(MoveDirections dir)
 	{
 		//printPosition();
-		glm::vec3 vel = glm::vec3(0.0f, 0.0f, 0.0f);
 		switch (dir)
 		{
 		case M_UP:
-			vel = glm::vec3(0.0f, deltaDistance, 0.0f);
+			acceleration += glm::vec3(0.0f, ACCELERATE_RATE, 0.0f);
 			break;
 		case M_DOWN:
-			vel = glm::vec3(0.0f, -deltaDistance, 0.0f);
+			acceleration += glm::vec3(0.0f, -ACCELERATE_RATE, 0.0f);
 			break;
 		case M_LEFT:
-			vel = glm::vec3(deltaDistance, 0.0f, 0.0f);
+			acceleration += glm::vec3(ACCELERATE_RATE, 0.0f, 0.0f);
 			break;
 		case M_RIGHT:
-			vel = glm::vec3(-deltaDistance, 0.0f, 0.0f);
+			acceleration += glm::vec3(-ACCELERATE_RATE, 0.0f, 0.0f);
 			break;
 		case M_FORWARD:
-			vel = glm::vec3(0.0f, 0.0f, deltaDistance);
+			acceleration += glm::vec3(0.0f, 0.0f, ACCELERATE_RATE);
 			break;
 		case M_BACKWARD:
-			vel = glm::vec3(0.0f, 0.0f, -deltaDistance);
+			acceleration += glm::vec3(0.0f, 0.0f, -ACCELERATE_RATE);
 			break;
 		default:
+			acceleration = ZERO_VECTOR;
 			break;
 		}
-		move(vel);
-	}
-
-	void moveRandom(double deltaDistance)
-	{
-		if (frameCounter % 30 == 0)
-		{
-			frameCounter = 0;
-			randDirection = rand() % 6;
-		}
-		frameCounter++;			
-
-		switch (randDirection)
-		{
-		case 0: // move up
-			move(deltaDistance, M_UP);
-			break;
-		case 1:// move down
-			move(deltaDistance, M_DOWN);
-			break;
-		case 2:// move left
-			move(deltaDistance, M_LEFT);
-			break;
-		case 3:// move right
-			move(deltaDistance, M_RIGHT);
-			break;
-		case 4:// move forward
-			move(deltaDistance, M_FORWARD);
-			break;
-		case 5:// move backward
-			move(deltaDistance, M_BACKWARD);
-			break;
-		default:
-			break;
-		}
+		//_move();
 	}
 
 	const glm::mat4 GetModelMatrix() const
@@ -192,8 +193,188 @@ private:
 
 	CollusionBox cage;
 
+	glm::vec3 velocity;
+	glm::vec3 acceleration;
+	bool isRandomMovement;
+
+	double deltaTime;
+	double lastFrame;
+
+	const glm::vec3 ZERO_VECTOR = glm::vec3(0.0f, 0.0f, 0.0f);
+	const double SPEED_LIMIT = 2.0;
+	const double ACCELERATE_RATE = 0.5;
+	const double STOP_SPEED = 0.4;
+	const double FRICTION_COEFFICIENT = 5;
+	const double FRICTION_LIMIT = 1.0;
 	/*  Functions   */
-	Point getRandomPoint()
+
+	void _Draw(Shader shader)
+	{
+		for (unsigned int i = 0; i < meshes.size(); i++)
+			meshes[i].Draw(shader);
+	}
+
+	void print_Vel_Acc()
+	{
+		if(velocity.z != 0 || acceleration.z != 0)
+		std::cout 
+			<< "velocity is: " << velocity.x << " - " << velocity.y << " - " << velocity.z
+			<< " acceleration is : " << acceleration.x << " - " << acceleration.y << " - " << acceleration.z << std::endl;
+	}
+
+	void _move()
+	{
+		//printPosition();
+
+		print_Vel_Acc();
+
+		_checkVelocityLimit();
+		cage.setVelocity(velocity);
+		cage.move();
+		modelMatrix = glm::translate(modelMatrix, velocity);
+	}
+
+	void _moveRandom()
+	{
+		if (frameCounter % 30 == 0)
+		{
+			frameCounter = 0;
+			randDirection = rand() % 6;
+		}
+		frameCounter++;
+
+		switch (randDirection)
+		{
+		case 0: // move up
+			move(M_UP);
+			break;
+		case 1:// move down
+			move(M_DOWN);
+			break;
+		case 2:// move left
+			move(M_LEFT);
+			break;
+		case 3:// move right
+			move(M_RIGHT);
+			break;
+		case 4:// move forward
+			move(M_FORWARD);
+			break;
+		case 5:// move backward
+			move(M_BACKWARD);
+			break;
+		default:
+			break;
+		}
+	}
+
+	void _checkVelocityLimit()
+	{
+		velocity += acceleration;
+
+		if (velocity.x > SPEED_LIMIT)
+		{
+			velocity.x = SPEED_LIMIT;
+		}
+		else if (velocity.x < -SPEED_LIMIT)
+		{
+			velocity.x = -SPEED_LIMIT;
+		}
+		if (velocity.y > SPEED_LIMIT)
+		{
+			velocity.y = SPEED_LIMIT;
+		}
+		else if (velocity.y < -SPEED_LIMIT)
+		{
+			velocity.y = -SPEED_LIMIT;
+		}
+		if (velocity.z > SPEED_LIMIT)
+		{
+			velocity.z = SPEED_LIMIT;
+		}
+		else if (velocity.z < -SPEED_LIMIT)
+		{
+			velocity.z = -SPEED_LIMIT;
+		}
+	}
+
+	void _adjustVelocity()
+	{
+		velocity *= acceleration;
+		if ((velocity.x < STOP_SPEED && velocity.x >= 0) || (velocity.x > -STOP_SPEED && velocity.x <= 0))
+		{
+			velocity.x = 0.0;
+			acceleration.x = 0.0;
+		}
+		if ((velocity.y < STOP_SPEED && velocity.y >= 0) || (velocity.y > -STOP_SPEED && velocity.y <= 0))
+		{
+			velocity.y = 0.0;
+			acceleration.y = 0.0;
+		}
+		if ((velocity.z < STOP_SPEED && velocity.z >= 0) || (velocity.z > -STOP_SPEED && velocity.z <= 0))
+		{
+			velocity.z = 0.0;
+			acceleration.z = 0.0f;
+		}
+	}
+
+	void _applyFriction()
+	{
+		if (velocity.x != 0)
+		{
+			auto friction = glm::vec3(FRICTION_COEFFICIENT * deltaTime, 0.0f, 0.0f);
+
+			velocity.x > 0 ? acceleration -= friction : acceleration -= -friction;
+
+			print_Vel_Acc();
+
+			if (acceleration.x < 0 && acceleration.x < FRICTION_LIMIT)
+			{
+				acceleration.x = -FRICTION_LIMIT;
+			}
+			else if (acceleration.x > 0 && acceleration.x > FRICTION_LIMIT)
+			{
+				acceleration.x = FRICTION_LIMIT;
+			}
+		}
+		if (velocity.y != 0)
+		{
+			auto friction = glm::vec3(0.0f, FRICTION_COEFFICIENT * deltaTime, 0.0f);
+
+			velocity.y > 0 ? acceleration -= friction : acceleration -= -friction;
+			
+			print_Vel_Acc();
+			
+			if (acceleration.y < 0 && acceleration.y < FRICTION_LIMIT)
+			{
+				acceleration.y = -FRICTION_LIMIT;
+			}
+			else if (acceleration.z > 0 && acceleration.z > FRICTION_LIMIT)
+			{
+				acceleration.z = FRICTION_LIMIT;
+			}
+		}
+		if (velocity.z != 0)
+		{
+			auto friction = glm::vec3(0.0f, 0.0f, FRICTION_COEFFICIENT * deltaTime);
+
+			velocity.z > 0 ? acceleration -= friction : acceleration -= -friction;
+
+			print_Vel_Acc();
+
+			if(acceleration.z < 0 && acceleration.z < FRICTION_LIMIT)
+			{
+				acceleration.z = -FRICTION_LIMIT;
+			}
+			else if (acceleration.z > 0 && acceleration.z > FRICTION_LIMIT)
+			{
+				acceleration.z = FRICTION_LIMIT;
+			}
+		}
+	}
+
+
+	Point _getRandomPoint()
 	{
 		double randx = rand() % 7;
 		double randy = rand() % 7;
@@ -405,19 +586,4 @@ unsigned int TextureFromFile(const char *path, const std::string &directory, boo
 
 	return textureID;
 }
-
-// Operator Overload: Is Equal checks.
-inline bool operator==(const Model& lhs, const Model& rhs)
-{
-	if (lhs.directory == rhs.directory)
-	{
-		if (lhs.GetModelMatrix() == rhs.GetModelMatrix())
-		{
-			return true;
-		}
-	}
-	return false;
-}
-inline bool operator!=(const Model& lhs, const Model& rhs) { return !(lhs == rhs); }
-
 #endif

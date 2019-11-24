@@ -3,33 +3,77 @@
 
 #include <glm/glm.hpp>
 #include <iostream>
+#include <cmath>
 
 struct Point {
-	double x;
-	double y;
-	double z;
+	double x = 0.0;
+	double y = 0.0;
+	double z = 0.0;
 
 	Point() : x(), y(), z() 
 	{}
 
 	Point(double x,double y,double z) : x(x), y(y), z(z)
 	{}
+
+	const double operator[](const int idx) const
+	{
+		if (idx == 0) return x;
+		if (idx == 1) return y;
+		if (idx == 2) return z;
+		//if (idx == 3) return w;
+		assert(0);
+	}
+};
+
+struct sphereLimits {
+	
+	sphereLimits() : c(), r() {}
+
+	sphereLimits(const Point & center, const Point & halfwidths)
+		: c(center), r (halfwidths)
+	{}
+
+	Point c;	// Center Point
+	Point r;	// halfwidths
+
+	double Abs(double a)
+	{
+		return std::fabs(a);
+	}
+
+	bool checkCollusion(sphereLimits other)
+	{
+		bool xOverlap = true;
+
+		bool yOverlap = true;
+
+		bool zOverlap = true;
+
+		bool anyOverlap = false;
+
+		if (Abs(c[0] - other.c[0]) > (r[0] + other.r[0])) xOverlap = false;
+
+		if (Abs(c[1] - other.c[1]) > (r[1] + other.r[1])) yOverlap = false;
+
+		if (Abs(c[2] - other.c[2]) > (r[2] + other.r[2])) zOverlap = false;
+
+		anyOverlap = xOverlap && yOverlap && zOverlap;
+
+		return anyOverlap;
+	}
 };
 
 struct boxLimits {
-	double max_x;
-	double max_y;
-	double max_z;
 
-	double min_y;
-	double min_z;
-	double min_x;
+	Point max;
+	Point min;
 
-	boxLimits() : max_x(), max_y(), max_z(), min_x(), min_y(), min_z()
+	boxLimits() : max(), min()
 	{}
 
-	boxLimits(double max_x, double max_y, double max_z, double min_x, double min_y, double min_z) 
-		: max_x(max_x), max_y(max_y), max_z(max_z), min_x(min_x), min_y(min_y), min_z(min_z)
+	boxLimits(Point max, Point min) 
+		: max(max), min(min)
 	{}
 };
 
@@ -41,73 +85,90 @@ public:
 	
 	boxLimits getCollusionBox()
 	{
-		return this->cage;
+		return this->box;
 	}
 
 	void setCollusionBox(boxLimits box)
 	{
-		this->cage = box;
+		this->box = box;
 	}
 
 	void scale(glm::vec3 scale)
 	{
-		double depth  = cage.max_x - cage.min_x;
-		double height = cage.max_y - cage.min_y;
-		double width  = cage.max_z - cage.min_z;
+		double depth  = box.max.x - box.min.x;
+		double height = box.max.x - box.min.y;
+		double width  = box.max.x - box.min.z;
 		
 		double diff_depth  = (depth  * scale.x) - depth;
 		double diff_height = (height * scale.y) - height;
 		double diff_width  = (width  * scale.z) - width;
 
-		cage.max_x += diff_depth / 2;
-		cage.min_x -= diff_depth / 2;
+		box.max.x += diff_depth / 2;
+		box.min.x -= diff_depth / 2;
 
-		cage.max_z += diff_width / 2;
-		cage.min_z -= diff_width / 2;
+		box.max.z += diff_width / 2;
+		box.min.z -= diff_width / 2;
 
-		cage.max_y += diff_height / 2;
-		cage.min_y -= diff_height / 2;
+		box.max.y += diff_height / 2;
+		box.min.y -= diff_height / 2;
 	}
 
 	void move()
 	{
-		cage.max_x += velocity.x;
-		cage.min_x += velocity.x;
+		box.max.x += velocity.x;
+		box.min.x += velocity.x;
 
-		cage.max_y += velocity.y;
-		cage.min_y += velocity.y;
+		box.max.y += velocity.y;
+		box.min.y += velocity.y;
 
-		cage.max_z += velocity.z;
-		cage.min_z += velocity.z;
+		box.max.z += velocity.z;
+		box.min.z += velocity.z;
+	}
+
+	void setupCollusionSphere()
+	{
+		auto diffx = box.max.x - box.min.x;
+		auto diffy = box.max.y - box.min.y;
+		auto diffz = box.max.z - box.min.z;
+
+		auto maxdiff = std::fmax(std::fmax(diffx, diffy), diffz);
+		maxdiff = maxdiff / 2;
+
+		auto center = Point(diffx / 2, diffy / 2, diffz / 2);
+		auto radius = Point(maxdiff - diffx, maxdiff - diffy, maxdiff - diffz);
 	}
 
 	void setupCollusionBox(glm::vec3 vector)
 	{
-		if (cage.min_x > vector.x) { cage.min_x = vector.x; }
-		if (cage.min_y > vector.y) { cage.min_y = vector.x; }
-		if (cage.min_z > vector.z) { cage.min_z = vector.z; }
+		if (box.min.x > vector.x) { box.min.x = vector.x; }
+		if (box.min.y > vector.y) { box.min.y = vector.x; }
+		if (box.min.z > vector.z) { box.min.z = vector.z; }
 
-		if (cage.max_x < vector.x) { cage.max_x = vector.x; }
-		if (cage.max_y < vector.y) { cage.max_y = vector.x; }
-		if (cage.max_z < vector.z) { cage.max_z = vector.z; }
+		if (box.max.x < vector.x) { box.max.x = vector.x; }
+		if (box.max.y < vector.y) { box.max.y = vector.x; }
+		if (box.max.z < vector.z) { box.max.z = vector.z; }
 	}
 
 	void printBox() 
 	{
-		std::cout << " max_X: " << cage.max_x
-				  << " min_X: " << cage.min_y
-				  << " max_Y: " << cage.max_y
-				  << " min_Y: " << cage.min_y
-				  << " max_Z: " << cage.max_z
-				  << " min_Z: " << cage.min_z << std::endl;
+		std::cout << " max_X: " << box.max.x
+				  << " min_X: " << box.min.y
+				  << " max_Y: " << box.max.y
+				  << " min_Y: " << box.min.y
+				  << " max_Z: " << box.max.z
+				  << " min_Z: " << box.min.z << std::endl;
 	}
 
 	void doCollusionAABB(CollusionBox &other)
 	{
-		if (_checkCollusionAABB(other))
+		if (_checkCollusionAABBbox(other))
 		{
 			// Do something.
-			_solveCollusionAABB(other);
+			_solveCollusionAABBbox(other);
+		}
+		if (_sheckCollusionAABBsphere(other))
+		{
+			_solveCollusionAABBsphere(other);
 		}
 	}
 
@@ -151,25 +212,30 @@ public:
 	//}
 
 private:
-	boxLimits cage;
+	boxLimits box;
+	sphereLimits sphere;
 	Point center;
 
 	bool canMove;
 
 	glm::vec3 velocity;
 	
-	bool _checkCollusionAABB(CollusionBox &other)
+	bool _sheckCollusionAABBsphere(CollusionBox &other)
+	{
+		return sphere.checkCollusion(other.sphere);
+	}
+
+	bool _checkCollusionAABBbox(CollusionBox &other)
 	{
 		if (!this->canMove && !other.canMove)
 		{
 			// Error case! Problem occoured while loading.
-			// Do nothing for now.
 			// TODO: IMPLEMENT A LOGIC FOR THIS CASE
 			return false;
 		}
-		if ((cage.min_x <= other.cage.max_x && cage.max_x >= other.cage.max_x || other.cage.min_x < cage.max_x && other.cage.max_x > cage.max_x) &&
-			(cage.min_y <= other.cage.max_y && cage.max_y >= other.cage.max_y || other.cage.min_y < cage.max_y && other.cage.max_y > cage.max_y) &&
-			(cage.min_z <= other.cage.max_z && cage.max_y >= other.cage.max_z || other.cage.min_z < cage.max_z && other.cage.max_z > cage.max_z))
+		if ((box.min.x <= other.box.max.x && box.max.x >= other.box.max.x || other.box.min.x < box.max.x && other.box.max.x > box.max.x) &&
+			(box.min.y <= other.box.max.y && box.max.y >= other.box.max.y || other.box.min.y < box.max.y && other.box.max.y > box.max.y) &&
+			(box.min.z <= other.box.max.z && box.max.y >= other.box.max.z || other.box.min.z < box.max.z && other.box.max.z > box.max.z))
 		{
 			// Collusion
 			std::cout << "Collusion Detected _CHECKAABB" << std::endl;
@@ -179,18 +245,17 @@ private:
 		}
 	}
 
-	void _solveCollusionAABB(CollusionBox &other)
+	void _solveCollusionAABBbox(CollusionBox &other)
 	{
 		if (!this->canMove && !other.canMove)
 		{
 			// Error case! Problem occoured while loading.
-			// Do nothing for now.
 			// TODO: IMPLEMENT A LOGIC FOR THIS CASE
 			return;
 		}
 		if (!this->canMove)
 		{
-			if (other.isMoving())
+			if (! other.isMoving())
 			{
 				other.velocity = glm::vec3(0.0f, 1.0f, 0.0f);
 			}
@@ -201,7 +266,7 @@ private:
 		}
 		else if (!other.canMove)
 		{
-			if (this->isMoving())
+			if (! this->isMoving())
 			{
 				this->velocity = glm::vec3(0.0f, 1.0f, 0.0f);
 			}
@@ -212,15 +277,15 @@ private:
 		}
 		else
 		{
-			if (this->isMoving() && other.isMoving())
+			if (! this->isMoving() && ! other.isMoving())
 			{
-				auto Tx = cage.max_x - cage.min_x;
-				auto Ty = cage.max_y - cage.min_y;
-				auto Tz = cage.max_z - cage.min_z;
+				auto Tx = box.max.x - box.min.x;
+				auto Ty = box.max.y - box.min.y;
+				auto Tz = box.max.z - box.min.z;
 
-				auto Ox = other.cage.max_x - other.cage.min_x;
-				auto Oy = other.cage.max_y - other.cage.min_y;
-				auto Oz = other.cage.max_z - other.cage.min_z;
+				auto Ox = other.box.max.x - other.box.min.x;
+				auto Oy = other.box.max.y - other.box.min.y;
+				auto Oz = other.box.max.z - other.box.min.z;
 
 				this->velocity = glm::vec3((Tx - Ox) / 2, (Ty - Oy) / 2, (Tz - Oz) / 2);
 				other.velocity = glm::vec3(-(Tx - Ox) / 2, -(Ty - Oy) / 2, -(Tz - Oz) / 2);
@@ -231,9 +296,66 @@ private:
 				other.velocity = -other.velocity;
 			}
 		}
-		move();
-		other.move();
+		//move();
+		//other.move();
 	}
+
+	void _solveCollusionAABBsphere(CollusionBox &other)
+	{
+		if (!this->canMove && !other.canMove)
+		{
+			// Error case! Problem occoured while loading.
+			// Do nothing for now.
+			// TODO: IMPLEMENT A LOGIC FOR THIS CASE
+			return;
+		}
+		if (!this->canMove)
+		{
+			if (! other.isMoving())
+			{
+				other.velocity = glm::vec3(0.0f, 1.0f, 0.0f);
+			}
+			else
+			{
+				other.velocity = -other.velocity;
+			}
+		}
+		else if (!other.canMove)
+		{
+			if (! this->isMoving())
+			{
+				this->velocity = glm::vec3(0.0f, 1.0f, 0.0f);
+			}
+			else
+			{
+				this->velocity = -this->velocity;
+			}
+		}
+		else
+		{
+			if (! this->isMoving() && ! other.isMoving())
+			{
+				auto Tx = sphere.c[0];
+				auto Ty = sphere.c[1];
+				auto Tz = sphere.c[2];
+
+				auto Ox = other.sphere.c[0];
+				auto Oy = other.sphere.c[1];
+				auto Oz = other.sphere.c[2];
+				
+				this->velocity = glm::vec3((Tx - Ox) / 2, (Ty - Oy) / 2, (Tz - Oz) / 2);
+				other.velocity = glm::vec3(-(Tx - Ox) / 2, -(Ty - Oy) / 2, -(Tz - Oz) / 2);
+			}
+			else
+			{
+				this->velocity = -this->velocity;
+				other.velocity = -other.velocity;
+			}
+		}
+		//move();
+		//other.move();
+	}
+
 };
 
 #endif
