@@ -1,4 +1,4 @@
-#include "Include/glad/glad.h"
+﻿#include "Include/glad/glad.h"
 #include <GLFW/glfw3.h>
 #include "stb_image.h"
 
@@ -19,7 +19,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
 unsigned int loadCubemap(std::vector<std::string> faces);
-
+void drawText(const char *text, int length, int x, int y);
 // PFfft.
 void processInputForObject(GLFWwindow *window, Model &model, double deltaDistance);
 // PFfft. x2
@@ -40,7 +40,8 @@ std::string FILE_SHADER_VERTEX_SKYBOX	= "./Resource/shaders/skybox.vs";
 
 std::string FILE_SHADER_FRAGMENT_STANDART_OBJECT = "./Resource/shaders/model_loading.fs";
 std::string FILE_SHADER_VERTEX_STANDARD_OBJECT	 = "./Resource/shaders/model_loading.vs";
-
+//"./Resource/objects/cube/cube.obj"
+//
 std::string FILE_OBJECT_CYBORG			= "./Resource/objects/cyborg/cyborg.obj";
 std::string FILE_OBJECT_NANOSUIT		= "./Resource/objects/nanosuit/nanosuit.obj";
 std::string FILE_OBJECT_FLATPLANE		= "./Resource/objects/flat-plane/flat-plane.obj";
@@ -72,6 +73,16 @@ float lastFrame = 0.0f;
 
 // PFTT
 unsigned int skyboxVAO, skyboxVBO;
+
+
+
+
+
+
+
+
+
+
 
 
 int main()
@@ -127,6 +138,7 @@ int main()
 	auto flatCubeModel = Model(FILE_OBJECT_FLATPLANE);
 	auto coinModel = Model(FILE_OBJECT_COIN);
 
+
 	ResourceManager::LoadShader(FILE_SHADER_VERTEX_STANDARD_OBJECT.c_str(), 
 		FILE_SHADER_FRAGMENT_STANDART_OBJECT.c_str(), nullptr, KEY_SHADER_OBJECT);
 	
@@ -141,15 +153,16 @@ int main()
 
 	// cyborg model matrix
 	// -------------------
-	auto scaleCyborg	= glm::vec3(0.5f, 0.5f, 0.5f);
+	auto scaleCyborg = glm::vec3(0.5f, 0.5f, 0.5f);
 	auto scaleSoldier	= glm::vec3(0.2f, 0.2f, 0.2f);
 	auto scaleFlatPlane = glm::vec3(20.0f, 0.001f, 20.0f);
 	auto scaleCoin		= glm::vec3(0.01f, 0.01f, 0.01f);
-
+	
 	coinModel.move(2.0f, M_UP);
 	coinModel.move(2.0f, M_RIGHT);
-
-
+//	&&&texture i kalp yap 
+	//	renderlarken project'on matr'z' orthogonal yap '
+		//	projectıon view identity
 	cyborgModel.ScaleModel(scaleCyborg);
 	soldierModel.ScaleModel(scaleSoldier);
 	flatCubeModel.ScaleModel(scaleFlatPlane);
@@ -157,17 +170,58 @@ int main()
 
 	cyborgModel.move(1.0f, M_UP);
 	soldierModel.move(1.75f, M_DOWN);
-
-
+	//GalpModel.move(1.0f, M_UP);
 	// frame counter for random movement
 	// ---------------
 
+
+	
+	std::string FILE_OBJECT_Galp = "./Resource/objects/Galp/Galp.obj";
+	std::string FILE_OBJECT_Score = "./Resource/objects/Score/Score.obj";
+	std::string FILE_OBJECT_Hunger = "./Resource/objects/Hunger/Hunger.obj";
+
+	auto GalpModel = Model(FILE_OBJECT_Galp);
+	auto ScoreModel = Model(FILE_OBJECT_Score);
+	auto HungerModel = Model(FILE_OBJECT_Hunger);
+
+	auto scaleGalp = glm::vec3(0.1f, 0.9f, 0.2f);
+	auto scaleScore = glm::vec3(0.1f, 0.9f, 0.2f);
+	auto HungerScore = glm::vec3(0.1f, 0.9f, 0.2f);
+
+	GalpModel.ScaleModel(scaleGalp);
+	ScoreModel.ScaleModel(scaleScore);
+	HungerModel.ScaleModel(HungerScore);
+
+
+
+	int lives=3;
+	int score = 17;
+	float hunger=0;
+
 	int randDistance;
+
+		double lastTime = glfwGetTime();
+		int nbFrames = 0;
 
 	// render loop
 	// -----------
 	while (!glfwWindowShouldClose(window))
 	{
+			// Measure speed
+			double currentTime = glfwGetTime();
+			nbFrames++;
+			if (currentTime - lastTime >= 1.0) { // If last prinf() was more than 1sec ago
+				// printf and reset
+				printf("%f ms/frame\n", 1000.0 / double(nbFrames));
+				//nbFrames = 0;
+				lastTime += 1.0;
+				nbFrames = 0;
+			}
+
+
+
+
+
 		// per-frame time logic
 		// --------------------
 		float currentFrame = glfwGetTime();
@@ -213,6 +267,72 @@ int main()
 
 		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", coinModel.GetModelMatrix());
 		coinModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+		////////////////////////////////////////////////////-----------------------------
+		if (nbFrames < 1000 && lives!=0) {
+			// view/projection transformations
+			glm::mat4 ORTHOprojection = glm::orthoLH(-10, 10, -10, 10, -10, 10);
+
+
+
+			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("projection", glm::mat4x4(1));
+			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("view", glm::mat4x4(1));
+
+			glDepthFunc(GL_ALWAYS);
+			
+			for (float i = 0; i < lives; i++) {
+				ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", { 1.0f,0.0f,0.0f,0.0f,//x
+																				 0.0f,1.0f,0.0f,0.0f,//y
+																				 0.0f,0.0f,0.0f,0.0f,//z
+																				 -7.50f,7.50f-i,0.0f,8.0f });
+
+				GalpModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			}
+
+			int tempscore = score;
+			float i=0;
+			while(  5<=tempscore ) {
+
+				ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", { 1.0f,0.0f,0.0f,0.0f,//x
+																				 0.0f,1.0f,0.0f,0.0f,//y
+																				 0.0f,0.0f,0.0f,0.0f,//z
+																				 6.0f - i,6.10f ,0.0f,6.5f });
+				i++;
+				tempscore -= 5;
+				ScoreModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			}
+			float j = 0;
+			while (0 < tempscore) {
+				
+				ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", { 1.0f,0.0f,0.0f,0.0f,//x
+																				 0.0f,1.0f,0.0f,0.0f,//y
+																				 0.0f,0.0f,0.0f,0.0f,//z
+																				 7.50f - j,6.40f ,0.0f,8.0f });
+				
+				j++;
+				tempscore -= 1;
+				ScoreModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			}
+
+			
+			if (hunger < 10) {
+				ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", { 10 - hunger,0.0f,0.0f,0.0f,//x
+																				 0.0f,0.5f,0.0f,0.0f,//y
+																				 0.0f,0.0f,0.0f,0.0f,//z
+																				 0.0f,-7.50f,0.0f,8.0f });
+				hunger = hunger +( 0.000001*SCR_WIDTH);
+				HungerModel.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			}
+			else {
+				if (lives > 0) {
+					hunger = 0;
+					lives--;
+				}
+
+			}
+		}
+
+
+
 
 
 		// draw skybox as last
@@ -482,3 +602,7 @@ unsigned int loadCubemap(std::vector<std::string> faces)
 
 	return textureID;
 }
+
+
+
+

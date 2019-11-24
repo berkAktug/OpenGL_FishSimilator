@@ -49,6 +49,8 @@ public:
 		loadModel(path);
 	}
 
+
+
 	//void clearAllTextures()
 	//{
 	//	textures_loaded.clear();
