@@ -13,7 +13,9 @@
 #include "mesh.h"
 #include "shader.h"
 
-#include "CollusionBox.h"
+#include "GameObject.h"
+
+#include "Enums.h"
 
 #include <string>
 #include <fstream>
@@ -24,15 +26,6 @@
 
 unsigned int TextureFromFile(const char *path, const std::string &directory, bool gamma = false);
 
-enum MoveDirections {
-	M_UP,
-	M_DOWN,
-	M_LEFT,
-	M_RIGHT,
-	M_FORWARD,
-	M_BACKWARD
-};
-
 class Model
 {
 public:
@@ -41,18 +34,16 @@ public:
 	std::vector<Mesh> meshes;
 	std::string directory;
 	bool gammaCorrection;
-	int ID;
+
+	void setID(int id)
+	{
+		this->ID = id;
+	}
 
 	/*  Functions   */
 	// constructor, expects a filepath to a 3D model.
-	Model(std::string const &path, bool gamma = false) : gammaCorrection(gamma)
+	Model(std::string const &path, bool gamma = false) : gammaCorrection(gamma), cage(GameObject())
 	{
-		Point point = _getRandomPoint();
-		cage = CollusionBox();
-		
-		velocity = glm::vec3(0.0f);
-		acceleration = glm::vec3(0.0f);
-
 		loadModel(path);
 		
 		cage.setupCollusionSphere();
@@ -60,28 +51,18 @@ public:
 		ID = rand() % 1000;
 
 		// Set model matrix to initial value;
-		this->modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(point.x, point.y, point.z));
-
-		//this->modelMatrix = glm::scale(modelMatrix, glm::vec3(dimensions.width, dimensions.height, dimensions.width));
-		frameCounter = 0;
+		auto randomPos = cage.getRandomPoint();
+		this->modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(randomPos.x, randomPos.y, randomPos.z));
 	}
 
 	void setFloor()
 	{
-		cage.setImmoveable();
-		boxLimits floor = cage.getCollusionBox();
+		glm::vec3 scaleFloor = cage.setFloor();
 
-		auto posx = floor.max.x - floor.min.x;
-		auto posy = floor.max.y - floor.min.y;
-		auto posz = floor.max.z - floor.min.z;
+		auto center = cage.getCenter();
 
-		floor.max.y =  0.001;
-		floor.min.y = -0.001;
-
-		velocity = ZERO_VECTOR;
-		acceleration = ZERO_VECTOR;
-
-		modelMatrix = glm::translate(modelMatrix, glm::vec3(-posx /2, -posy /2, -posz /2));
+		modelMatrix = glm::scale(modelMatrix, scaleFloor);
+		modelMatrix = glm::translate(modelMatrix, glm::vec3(-center.x, -center.y, -center.z));
 	}
 
 	void printPosition()
@@ -96,16 +77,21 @@ public:
 		{
 			return;
 		}
-		cage.doCollusionAABB(other.cage);
-
-		this->velocity = cage.getVelocity();
-		other.velocity = other.cage.getVelocity();
+		cage.doCollusion(other.cage, CollusionDetectionType::CollusionAABB);
 
 		this->_move();
 		other._move();
 	}
 
-	// draws the model, and thus all its meshes
+	MovementType getRandomMovmeent()
+	{
+		return cage.getMovementType();
+	}
+
+	void setMovementType(MovementType movementType)
+	{
+		cage.setMovementType(movementType);
+	}
 
 	void ScaleModel(glm::vec3 scaleVector)
 	{
@@ -113,280 +99,48 @@ public:
 		modelMatrix = glm::scale(modelMatrix, scaleVector);	
 	}
 
-	void update(Shader shader)
+	void update(Shader shader, float currentFrame)
 	{
-		float currentFrame = glfwGetTime();
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
-		
-		if(velocity.z != 0 || acceleration.z != 0)
-		std::cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
+		cage.update(currentFrame);
 
-		if (! cage.isMoveable())
-		{
-			// Do nothing. object is not able to move.
-		}
-		else if (isRandomMovement)
-		{
-			_moveRandom();
-		}
-		else
-		{
-			_move();
-		}
-		_applyFriction();
-		_adjustVelocity();
+		_move();
 
 		_Draw(shader);
 	}
 	
-	bool getRandomMovmeent()
-	{
-		return isRandomMovement;
-	}
-
-	void setRandomMovement(bool isRandom)
-	{
-		isRandomMovement = isRandom;
-	}
-
-	void move(MoveDirections dir)
+	void move(Directions dir)
 	{
 		//printPosition();
-		switch (dir)
-		{
-		case M_UP:
-			acceleration += glm::vec3(0.0f, ACCELERATE_RATE, 0.0f);
-			break;
-		case M_DOWN:
-			acceleration += glm::vec3(0.0f, -ACCELERATE_RATE, 0.0f);
-			break;
-		case M_LEFT:
-			acceleration += glm::vec3(ACCELERATE_RATE, 0.0f, 0.0f);
-			break;
-		case M_RIGHT:
-			acceleration += glm::vec3(-ACCELERATE_RATE, 0.0f, 0.0f);
-			break;
-		case M_FORWARD:
-			acceleration += glm::vec3(0.0f, 0.0f, ACCELERATE_RATE);
-			break;
-		case M_BACKWARD:
-			acceleration += glm::vec3(0.0f, 0.0f, -ACCELERATE_RATE);
-			break;
-		default:
-			acceleration = ZERO_VECTOR;
-			break;
-		}
-		//_move();
+		cage.move(dir);
+		_move();
 	}
 
 	const glm::mat4 GetModelMatrix() const
 	{
 		return modelMatrix;
 	}
-
+	
 private:
 	/*  Model Data  */
 	glm::mat4 modelMatrix;
-	int randDirection;
-	int frameCounter;
+	int ID;
 
-	CollusionBox cage;
-
-	glm::vec3 velocity;
-	glm::vec3 acceleration;
-	bool isRandomMovement;
-
-	double deltaTime;
-	double lastFrame;
-
-	const glm::vec3 ZERO_VECTOR = glm::vec3(0.0f, 0.0f, 0.0f);
-	const double SPEED_LIMIT = 2.0;
-	const double ACCELERATE_RATE = 0.5;
-	const double STOP_SPEED = 0.4;
-	const double FRICTION_COEFFICIENT = 5;
-	const double FRICTION_LIMIT = 1.0;
+	GameObject cage;
 	/*  Functions   */
-
+	// draws the model, and thus all its meshes
 	void _Draw(Shader shader)
 	{
 		for (unsigned int i = 0; i < meshes.size(); i++)
+		{
 			meshes[i].Draw(shader);
-	}
-
-	void print_Vel_Acc()
-	{
-		if(velocity.z != 0 || acceleration.z != 0)
-		std::cout 
-			<< "velocity is: " << velocity.x << " - " << velocity.y << " - " << velocity.z
-			<< " acceleration is : " << acceleration.x << " - " << acceleration.y << " - " << acceleration.z << std::endl;
+		}
 	}
 
 	void _move()
 	{
 		//printPosition();
-
-		print_Vel_Acc();
-
-		_checkVelocityLimit();
-		cage.setVelocity(velocity);
 		cage.move();
-		modelMatrix = glm::translate(modelMatrix, velocity);
-	}
-
-	void _moveRandom()
-	{
-		if (frameCounter % 30 == 0)
-		{
-			frameCounter = 0;
-			randDirection = rand() % 6;
-		}
-		frameCounter++;
-
-		switch (randDirection)
-		{
-		case 0: // move up
-			move(M_UP);
-			break;
-		case 1:// move down
-			move(M_DOWN);
-			break;
-		case 2:// move left
-			move(M_LEFT);
-			break;
-		case 3:// move right
-			move(M_RIGHT);
-			break;
-		case 4:// move forward
-			move(M_FORWARD);
-			break;
-		case 5:// move backward
-			move(M_BACKWARD);
-			break;
-		default:
-			break;
-		}
-	}
-
-	void _checkVelocityLimit()
-	{
-		velocity += acceleration;
-
-		if (velocity.x > SPEED_LIMIT)
-		{
-			velocity.x = SPEED_LIMIT;
-		}
-		else if (velocity.x < -SPEED_LIMIT)
-		{
-			velocity.x = -SPEED_LIMIT;
-		}
-		if (velocity.y > SPEED_LIMIT)
-		{
-			velocity.y = SPEED_LIMIT;
-		}
-		else if (velocity.y < -SPEED_LIMIT)
-		{
-			velocity.y = -SPEED_LIMIT;
-		}
-		if (velocity.z > SPEED_LIMIT)
-		{
-			velocity.z = SPEED_LIMIT;
-		}
-		else if (velocity.z < -SPEED_LIMIT)
-		{
-			velocity.z = -SPEED_LIMIT;
-		}
-	}
-
-	void _adjustVelocity()
-	{
-		velocity *= acceleration;
-		if ((velocity.x < STOP_SPEED && velocity.x >= 0) || (velocity.x > -STOP_SPEED && velocity.x <= 0))
-		{
-			velocity.x = 0.0;
-			acceleration.x = 0.0;
-		}
-		if ((velocity.y < STOP_SPEED && velocity.y >= 0) || (velocity.y > -STOP_SPEED && velocity.y <= 0))
-		{
-			velocity.y = 0.0;
-			acceleration.y = 0.0;
-		}
-		if ((velocity.z < STOP_SPEED && velocity.z >= 0) || (velocity.z > -STOP_SPEED && velocity.z <= 0))
-		{
-			velocity.z = 0.0;
-			acceleration.z = 0.0f;
-		}
-	}
-
-	void _applyFriction()
-	{
-		if (velocity.x != 0)
-		{
-			auto friction = glm::vec3(FRICTION_COEFFICIENT * deltaTime, 0.0f, 0.0f);
-
-			velocity.x > 0 ? acceleration -= friction : acceleration -= -friction;
-
-			print_Vel_Acc();
-
-			if (acceleration.x < 0 && acceleration.x < FRICTION_LIMIT)
-			{
-				acceleration.x = -FRICTION_LIMIT;
-			}
-			else if (acceleration.x > 0 && acceleration.x > FRICTION_LIMIT)
-			{
-				acceleration.x = FRICTION_LIMIT;
-			}
-		}
-		if (velocity.y != 0)
-		{
-			auto friction = glm::vec3(0.0f, FRICTION_COEFFICIENT * deltaTime, 0.0f);
-
-			velocity.y > 0 ? acceleration -= friction : acceleration -= -friction;
-			
-			print_Vel_Acc();
-			
-			if (acceleration.y < 0 && acceleration.y < FRICTION_LIMIT)
-			{
-				acceleration.y = -FRICTION_LIMIT;
-			}
-			else if (acceleration.z > 0 && acceleration.z > FRICTION_LIMIT)
-			{
-				acceleration.z = FRICTION_LIMIT;
-			}
-		}
-		if (velocity.z != 0)
-		{
-			auto friction = glm::vec3(0.0f, 0.0f, FRICTION_COEFFICIENT * deltaTime);
-
-			velocity.z > 0 ? acceleration -= friction : acceleration -= -friction;
-
-			print_Vel_Acc();
-
-			if(acceleration.z < 0 && acceleration.z < FRICTION_LIMIT)
-			{
-				acceleration.z = -FRICTION_LIMIT;
-			}
-			else if (acceleration.z > 0 && acceleration.z > FRICTION_LIMIT)
-			{
-				acceleration.z = FRICTION_LIMIT;
-			}
-		}
-	}
-
-
-	Point _getRandomPoint()
-	{
-		double randx = rand() % 7;
-		double randy = rand() % 7;
-		double randz = rand() % 7;
-
-		int randsignx = rand() % 2;
-		int randsignz = rand() % 2;
-
-		if (randsignx == 0) randx *= -1.0;
-		if (randsignz == 0) randz *= -1.0;
-
-		return Point(randx, randy, randz);
+		modelMatrix = glm::translate(modelMatrix, cage.getVelocity());
 	}
 
 	// loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
@@ -586,4 +340,5 @@ unsigned int TextureFromFile(const char *path, const std::string &directory, boo
 
 	return textureID;
 }
+
 #endif
