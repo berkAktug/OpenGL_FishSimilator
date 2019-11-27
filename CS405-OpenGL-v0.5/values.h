@@ -5,23 +5,17 @@
 
 // Default Object movement values
 const glm::vec3 VECTOR_ZERO = glm::vec3(0.0, 0.0, 0.0);
-const double SPEED_LIMIT = 0.1;
-const double ACCELERATE_RATE = 0.03;
-const double STOP_SPEED = 0.02;
-const double FRICTION_COEFFICIENT = 1.0;
-const double FRICTION_LIMIT = 0.08;
 
+const double divisionCoefficient = 40;
+const double SPEED_LIMIT = 1.0 / divisionCoefficient;
+const double ACCELERATE_RATE = 0.6 / divisionCoefficient;
+const double STOP_SPEED = 0.4 / divisionCoefficient;
+const double FRICTION_COEFFICIENT = 20.0 / divisionCoefficient;
+const double FRICTION_LIMIT = 1.6 / divisionCoefficient;
 
-//const double GAMEZONE_MAX_X =  20.0;
-//const double GAMEZONE_MIN_X =	0.0;
-//const double GAMEZONE_MAX_Y =  50.0;
-//const double GAMEZONE_MIN_Y = -50.0;
-//const double GAMEZONE_MAX_Z =  50.0;
-//const double GAMEZONE_MIN_Z = -50.0;
-
-const double FLOOR_DIMENSION_X = 20.0;
-const double FLOOR_DIMENSION_Z = 20.0;
-const double FLOOR_DIMENSION_Y = 0.1;
+const double GAMEBOUNDRY_X =  30.0;
+const double GAMEBOUNDRY_Y =  20.0;
+const double GAMEBOUNDRY_Z =  50.0;
 
 // temporary Vectors
 const glm::vec3 VECTOR_Y_POSITIVE = glm::vec3(0.0f, 0.1f, 0.0f);
@@ -32,6 +26,16 @@ const float PITCH = 0.0f;
 const float SPEED = 5.0f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
+
+// Window settings
+const unsigned int SCR_WIDTH = 1280;
+const unsigned int SCR_HEIGHT = 720;
+
+
+// Global Game values
+int VAR_TOTAL_LIVES = 3;
+int VAR_TOTAL_SCORE = 17;
+float VAR_HUNGER = 0;
 
 #endif // !VALUES_H
 

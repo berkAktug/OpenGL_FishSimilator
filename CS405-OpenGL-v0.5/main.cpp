@@ -22,47 +22,10 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
 unsigned int loadCubemap(std::vector<std::string> faces);
-void drawText(const char *text, int length, int x, int y);
-// PFfft.
+
 void processInputForObject(GLFWwindow *window, Model &model);
-// PFfft. x2
 unsigned int skyboxInit();
 
-//// STRING TABLE
-//// -----------------------------
-//std::string WINDOW_TITLE = "Fish In the sea";
-//
-//std::string KEY_SHADER_SKYBOX	= "SKYBOX_SHADER";
-//std::string KEY_SHADER_OBJECT	= "OBJECT_SHADER";
-//std::string KEY_TEXTURE_MARBLE	= "TEXTURE_MARBLE";
-//
-//std::string FILE_TEXTURE_MARBLE			= "./Resource/textures/marble.jpg";
-//
-//std::string FILE_SHADER_FRAGMENT_SKYBOX = "./Resource/shaders/skybox.fs";
-//std::string FILE_SHADER_VERTEX_SKYBOX	= "./Resource/shaders/skybox.vs";
-//
-//std::string FILE_SHADER_FRAGMENT_STANDART_OBJECT = "./Resource/shaders/model_loading.fs";
-//std::string FILE_SHADER_VERTEX_STANDARD_OBJECT	 = "./Resource/shaders/model_loading.vs";
-////"./Resource/objects/cube/cube.obj"
-//
-//
-////
-//std::string FILE_OBJECT_CYBORG			= "./Resource/objects/cyborg/cyborg.obj";
-//std::string FILE_OBJECT_NANOSUIT		= "./Resource/objects/nanosuit/nanosuit.obj";
-//std::string FILE_OBJECT_FLATPLANE		= "./Resource/objects/flat-plane/flat-plane.obj";
-//std::string FILE_OBJECT_COIN			= "./Resource/objects/coin/coin.fbx";
-//
-//std::string FILE_TEXTURE_SKYBOX_RIGHT	= "./Resource/textures/skybox/right.jpg";
-//std::string FILE_TEXTURE_SKYBOX_LEFT	= "./Resource/textures/skybox/left.jpg";
-//std::string FILE_TEXTURE_SKYBOX_FRONT	= "./Resource/textures/skybox/front.jpg";
-//std::string FILE_TEXTURE_SKYBOX_BACK	= "./Resource/textures/skybox/back.jpg";
-//std::string FILE_TEXTURE_SKYBOX_TOP		= "./Resource/textures/skybox/top.jpg";
-//std::string FILE_TEXTURE_SKYBOX_BOTTOM	= "./Resource/textures/skybox/bottom.jpg";
-//// ------------------------------
-
-// settings
-const unsigned int SCR_WIDTH = 1280;
-const unsigned int SCR_HEIGHT = 720;
 
 // camera
 Camera camera(glm::vec3(0.0f, 2.0f, 3.0f));
@@ -74,10 +37,12 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-// speed
-double obj_speed = 0.1f;
-
-int debugCounter = 0;
+GLfloat box_vertices[] = {
+	-10.0f , -10.0f, 0.0f, 0.0f, 1.0f,
+	-10.0f , 10.0f, 0.0f, 0.0f, 0.0f,
+   10.0f , 10.0f, 0.0f, 1.0f, 0.0f,
+   10.0f , -10.0f, 0.0f, 1.0f, 1.0f
+};
 
 
 std::vector<Model> modelList;
@@ -133,97 +98,83 @@ int main()
 	ResourceManager::LoadShader(FILE_SHADER_VERTEX_SKYBOX.c_str(),
 		FILE_SHADER_FRAGMENT_SKYBOX.c_str(), nullptr, KEY_SHADER_SKYBOX);
 
-	auto cyborgModel = Model(FILE_OBJECT_CYBORG);
-	auto soldierModel = Model(FILE_OBJECT_NANOSUIT);
-	auto flatCubeModel = Model(FILE_OBJECT_FLATPLANE);
-
-	flatCubeModel.setFloor();
-
-	auto coinModel = Model(FILE_OBJECT_COIN);
-
-	cyborgModel.setID(0);
-	soldierModel.setID(1);
-	flatCubeModel.setID(2);
-	coinModel.setID(3);
-
-	// ResourceManager::LoadShader(FILE_SHADER_VERTEX_STANDARD_OBJECT.c_str(),
-
-	ResourceManager::LoadShader(FILE_SHADER_VERTEX_STANDARD_OBJECT.c_str(), 
+	ResourceManager::LoadShader(FILE_SHADER_VERTEX_STANDARD_OBJECT.c_str(),
 		FILE_SHADER_FRAGMENT_STANDART_OBJECT.c_str(), nullptr, KEY_SHADER_OBJECT);
 
-	// Init skybox, its not good practise.
+
+	// Initialize Skybox
+	// --------------------------------------
 	unsigned int skyboxTexture = skyboxInit();
 
 	// shader configuration
-	// --------------------
+// --------------------
 	ResourceManager::GetShader(KEY_SHADER_OBJECT).use();
 
 	ResourceManager::GetShader(KEY_SHADER_SKYBOX).use().setInt("skybox", 0);
 
-	// cyborg model matrix
-	// -------------------
-	auto scaleCyborg = glm::vec3(0.5f, 0.5f, 0.5f);
-	auto scaleSoldier = glm::vec3(0.2f, 0.2f, 0.2f);
-	auto scaleFlatPlane = glm::vec3(20.0f, 0.001f, 20.0f);
-	auto scaleCoin = glm::vec3(0.01f, 0.01f, 0.01f);
 
-	cyborgModel.printPosition();
-	soldierModel.printPosition();
-	flatCubeModel.printPosition();
-	coinModel.printPosition();
-
-	cyborgModel.ScaleModel(scaleCyborg);
-	soldierModel.ScaleModel(scaleSoldier);
-	//flatCubeModel.ScaleModel(scaleFlatPlane);
-	coinModel.ScaleModel(scaleCoin);
-
-	// cyborgModel.move(1.0f, M_UP);
-	// soldierModel.move(1.75f, M_DOWN);
-
-	std::cout << std::endl;
-
-	//cyborgModel.printPosition();
-	//soldierModel.printPosition();
-	flatCubeModel.printPosition();
-	//coinModel.printPosition();
-
-
-	// frame counter for random movement
-	// ---------------
-
-	//std::vector<Model> modelList;
-	modelList.push_back(soldierModel);
-	modelList.push_back(coinModel);
-	modelList.push_back(cyborgModel);
-	modelList.push_back(flatCubeModel);
-
-
-	//GalpModel.move(1.0f, M_UP);
-	// frame counter for random movement
-	// ---------------
-
+	// Create Game models
+	// ---------------------------------------
+	auto cyborgModel = Model(FILE_OBJECT_CYBORG);
+	auto soldierModel = Model(FILE_OBJECT_NANOSUIT);
 	auto GalpModel = Model(FILE_OBJECT_HP);
 	auto ScoreModel = Model(FILE_OBJECT_SCORE);
 	auto HungerModel = Model(FILE_OBJECT_HUNGER);
-
+	auto coinModel = Model(FILE_OBJECT_COIN);
+		
+	// Set Unique Id to Models
+	// ----------------------
+	cyborgModel.setID(0);
+	soldierModel.setID(1);
+	coinModel.setID(3);
+	   
+	// Scale models 
+	// -------------------
+	auto scaleCyborg = glm::vec3(0.5f, 0.5f, 0.5f);
+	auto scaleSoldier = glm::vec3(0.2f, 0.2f, 0.2f);
+	auto scaleCoin = glm::vec3(0.01f, 0.01f, 0.01f);
+	
 	auto scaleGalp = glm::vec3(0.1f, 0.9f, 0.2f);
 	auto scaleScore = glm::vec3(0.1f, 0.9f, 0.2f);
 	auto HungerScore = glm::vec3(0.1f, 0.9f, 0.2f);
+	
+	
+	// Debug Printer
+	// -------------------------
+	//cyborgModel.printPosition();
+	//soldierModel.printPosition();
+	//coinModel.printPosition();
 
+	// Apply Scale operation to models
+	// -----------------------------------
+	cyborgModel.ScaleModel(scaleCyborg);
+	soldierModel.ScaleModel(scaleSoldier);
+	coinModel.ScaleModel(scaleCoin);
 	GalpModel.ScaleModel(scaleGalp);
 	ScoreModel.ScaleModel(scaleScore);
 	HungerModel.ScaleModel(HungerScore);
 
 
+	// Debug Printer
+	// -----------------------------
+	//cyborgModel.printPosition();
+	//soldierModel.printPosition();
+	//coinModel.printPosition();
 
-	int lives=3;
-	int score = 17;
-	float hunger=0;
 
-	int randDistance;
+	// Add models to an list to ease cycling
+	// --------------------------------------
+	modelList.push_back(cyborgModel);
+	modelList.push_back(soldierModel);
+	modelList.push_back(coinModel);
 
-		double lastTime = glfwGetTime();
-		int nbFrames = 0;
+
+	// Set object movement types. Default is Normal
+	// ---------------------------------------------
+	soldierModel.setMovementType(MovementType::Random);
+
+	double lastTime = glfwGetTime();
+	int nbFrames = 0;
 
 	// render loop
 	// -----------
@@ -234,15 +185,11 @@ int main()
 			nbFrames++;
 			if (currentTime - lastTime >= 1.0) { // If last prinf() was more than 1sec ago
 				// printf and reset
-				printf("%f ms/frame\n", 1000.0 / double(nbFrames));
+				//printf("%f ms/frame\n", 1000.0 / double(nbFrames));
 				//nbFrames = 0;
 				lastTime += 1.0;
 				nbFrames = 0;
 			}
-
-
-
-
 
 		// per-frame time logic
 		// --------------------
@@ -253,14 +200,14 @@ int main()
 		// input
 		// -----
 		processInput(window);
-		cyborgModel.doCollusion(flatCubeModel);
-		//for (int i = 0; i < modelList.size(); i++)
-		//{
-		//	for (int j = i; j < modelList.size(); j++)
-		//	{
-		//		modelList[i].doCollusion(modelList[j]);
-		//	}
-		//}
+		//cyborgModel.doCollusion(floorModel);
+		for (int i = 0; i < modelList.size(); i++)
+		{
+			for (int j = 0; j < modelList.size(); j++)
+			{
+				modelList[i].doCollusion(modelList[j]);
+			}
+		}
 		processInputForObject(window, cyborgModel);
 
 		// render
@@ -282,24 +229,24 @@ int main()
 		//// render the loaded model
 		//for (auto model : modelList)
 		//{
-		//	model.moveRandom(dt_distance);
 		//	ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", model.GetModelMatrix());
-		//	model.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+		//	model.Update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		//}
 
-		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", cyborgModel.GetModelMatrix());
-		cyborgModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT), currentFrame);
+		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", cyborgModel.getModelMatrix());
+		cyborgModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		
-		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", soldierModel.GetModelMatrix());
-		soldierModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT), currentFrame);
+		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", soldierModel.getModelMatrix());
+		soldierModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 
-		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", flatCubeModel.GetModelMatrix());
-		flatCubeModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT), currentFrame);
+		//ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", floorModel.GetModelMatrix());
+		//floorModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT), currentFrame);
 
-		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", coinModel.GetModelMatrix());
-		coinModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT), currentFrame);
+		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", coinModel.getModelMatrix());
+		coinModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		////////////////////////////////////////////////////-----------------------------
-		if (nbFrames < 1000 && lives!=0) {
+		if (nbFrames < 1000 && VAR_TOTAL_LIVES!=0) 
+		{
 			// view/projection transformations
 			glm::mat4 ORTHOprojection = glm::orthoLH(-10, 10, -10, 10, -10, 10);
 
@@ -310,16 +257,16 @@ int main()
 
 			glDepthFunc(GL_ALWAYS);
 			
-			for (float i = 0; i < lives; i++) {
+			for (float i = 0; i < VAR_TOTAL_LIVES; i++) {
 				ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", { 1.0f,0.0f,0.0f,0.0f,//x
 																				 0.0f,1.0f,0.0f,0.0f,//y
 																				 0.0f,0.0f,0.0f,0.0f,//z
 																				 -7.50f,7.50f-i,0.0f,8.0f });
 
-				GalpModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT), currentFrame);
+				GalpModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 			}
 
-			int tempscore = score;
+			int tempscore = VAR_TOTAL_SCORE;
 			float i=0;
 			while(  5<=tempscore ) {
 
@@ -329,7 +276,7 @@ int main()
 																				 6.0f - i,6.10f ,0.0f,6.5f });
 				i++;
 				tempscore -= 5;
-				ScoreModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT), currentFrame);
+				ScoreModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 			}
 			float j = 0;
 			while (0 < tempscore) {
@@ -341,31 +288,24 @@ int main()
 				
 				j++;
 				tempscore -= 1;
-				ScoreModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT),currentFrame);
+				ScoreModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 			}
-
 			
-			if (hunger < 10) {
-				ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", { 10 - hunger,0.0f,0.0f,0.0f,//x
+			if (VAR_HUNGER < 10) {
+				ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", { 10 - VAR_HUNGER,0.0f,0.0f,0.0f,//x
 																				 0.0f,0.5f,0.0f,0.0f,//y
 																				 0.0f,0.0f,0.0f,0.0f,//z
 																				 0.0f,-7.50f,0.0f,8.0f });
-				hunger = hunger +( 0.000001*SCR_WIDTH);
-				HungerModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT),currentFrame);
+				VAR_HUNGER = VAR_HUNGER +( 0.000001*SCR_WIDTH);
+				HungerModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 			}
-			else {
-				if (lives > 0) {
-					hunger = 0;
-					lives--;
-				}
-
+			else if( VAR_TOTAL_LIVES > 0)
+			{
+				VAR_HUNGER = 0;
+				VAR_TOTAL_LIVES--;
 			}
 		}
-
-
-
-
-
+			   		 	  
 		// draw skybox as last
 		glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
 		ResourceManager::GetShader(KEY_SHADER_SKYBOX).use();
@@ -503,38 +443,32 @@ void processInputForObject(GLFWwindow * window, Model &model)
 {
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
 	{
-		model.move(Directions::FORWARD);
+		model.turnTowards(Directions::FORWARD);
 	}
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
 	{
-		model.move(Directions::BACKWARD);
+		model.turnTowards(Directions::BACKWARD);
 	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
 	{
-		model.move(Directions::LEFT);
+		model.turnTowards(Directions::LEFT);
 	}
 	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
 	{
-		model.move(Directions::RIGHT);
+		model.turnTowards(Directions::RIGHT);
 	}
 	if (glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
 	{
-		model.move(Directions::UP);
+		model.turnTowards(Directions::UP);
 	}
 	if (glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS)
 	{
-		model.move(Directions::DOWN);
+		model.turnTowards(Directions::DOWN);
 	}
 	if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
 	{
-		if (debugCounter % 2 == 0)
-		{
-			debugCounter++;
-			for (auto model : modelList)
-			{
-				model.printPosition();
-			}
-		}
+		std::cout << std::endl;
+		model.printPosition();
 	}
 	if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS)
 	{

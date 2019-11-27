@@ -62,7 +62,7 @@
     <ClInclude Include="PhysicsEngine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GameObject.h">
+    <ClInclude Include="Object.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

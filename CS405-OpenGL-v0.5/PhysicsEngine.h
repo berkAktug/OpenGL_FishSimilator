@@ -92,6 +92,18 @@ struct BoxAABB
 		: max(max), min(min)
 	{}
 
+	void move(const glm::vec3 &vec)
+	{
+		max.x += vec.x;
+		min.x += vec.x;
+
+		max.y += vec.y;
+		min.y += vec.y;
+
+		max.z += vec.z;
+		min.z += vec.z;
+	}
+
 	bool intersect(BoxAABB b) {
 		return  (min.x <= b.max.x && max.x >= b.min.x) &&
 			(min.y <= b.max.y && max.y >= b.min.y) &&
