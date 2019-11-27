@@ -10,6 +10,11 @@ std::string KEY_TEXTURE_MARBLE = "TEXTURE_MARBLE";
 
 std::string FILE_TEXTURE_MARBLE = "./Resource/textures/marble.jpg";
 
+std::string FILE_OBJECT_HP = "./Resource/objects/Galp/Galp.obj";
+std::string FILE_OBJECT_SCORE = "./Resource/objects/Score/Score.obj";
+std::string FILE_OBJECT_HUNGER = "./Resource/objects/Hunger/Hunger.obj";
+
+
 std::string FILE_SHADER_FRAGMENT_SKYBOX = "./Resource/shaders/skybox.fs";
 std::string FILE_SHADER_VERTEX_SKYBOX = "./Resource/shaders/skybox.vs";
 
