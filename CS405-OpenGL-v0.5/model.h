@@ -55,6 +55,25 @@ public:
 		this->modelMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(randomPos.x, randomPos.y, randomPos.z));
 	}
 
+	// void addTexture(Texture texture) 
+
+
+	//void clearAllTextures()
+	//{
+	//	textures_loaded.clear();
+	//}
+
+	void addTexture(std::string path, std::string type = "texture_diffuse")
+	{
+		// THIS ASSUMES THERE ARE NO DELETE OPERATIONS IN THE VECTOR
+		auto temp_id = textures_loaded.size() + 1;
+		Texture temp;
+		temp.id = temp_id;
+		temp.path = path;
+		temp.type = type;
+		textures_loaded.push_back(temp);
+	}
+
 	void setFloor()
 	{
 		glm::vec3 scaleFloor = cage.setFloor();
