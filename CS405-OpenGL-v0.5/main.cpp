@@ -19,7 +19,7 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
+void processInput(GLFWwindow *window, Model &model);
 unsigned int loadTexture(const char *path);
 unsigned int loadCubemap(std::vector<std::string> faces);
 
@@ -27,7 +27,7 @@ void processInputForObject(GLFWwindow *window, Model &model);
 unsigned int skyboxInit();
 
 
-// camera
+// Initial camera settings.
 Camera camera(glm::vec3(0.0f, 2.0f, 3.0f));
 float lastX = (float)SCR_WIDTH / 2.0;
 float lastY = (float)SCR_HEIGHT / 2.0;
@@ -44,6 +44,23 @@ GLfloat box_vertices[] = {
    10.0f , -10.0f, 0.0f, 1.0f, 1.0f
 };
 
+auto distRange = glm::vec3(5.0f);
+
+bool isGodMod = false;
+
+bool checkDistance(Model& model)
+{
+	double dist = std::sqrt( pow(camera.getPosition().x - model.getPosition().x,2)
+						   + pow(camera.getPosition().y - model.getPosition().y,2)
+						   + pow(camera.getPosition().z - model.getPosition().z,2));
+
+	std::cout << dist << std::endl;
+	if (dist < 25.0)
+	{
+		return true;
+	}
+	return false;
+}
 
 std::vector<Model> modelList;
 
@@ -101,25 +118,23 @@ int main()
 	ResourceManager::LoadShader(FILE_SHADER_VERTEX_STANDARD_OBJECT.c_str(),
 		FILE_SHADER_FRAGMENT_STANDART_OBJECT.c_str(), nullptr, KEY_SHADER_OBJECT);
 
-
 	// Initialize Skybox
 	// --------------------------------------
 	unsigned int skyboxTexture = skyboxInit();
 
 	// shader configuration
-// --------------------
+	// --------------------
 	ResourceManager::GetShader(KEY_SHADER_OBJECT).use();
 
 	ResourceManager::GetShader(KEY_SHADER_SKYBOX).use().setInt("skybox", 0);
-
 
 	// Create Game models
 	// ---------------------------------------
 	auto cyborgModel = Model(FILE_OBJECT_CYBORG);
 	auto soldierModel = Model(FILE_OBJECT_NANOSUIT);
-	auto GalpModel = Model(FILE_OBJECT_HP);
-	auto ScoreModel = Model(FILE_OBJECT_SCORE);
-	auto HungerModel = Model(FILE_OBJECT_HUNGER);
+	auto hpPanelModel = Model(FILE_OBJECT_HP);
+	auto scorePanelModel = Model(FILE_OBJECT_SCORE);
+	auto hungerPanelModel = Model(FILE_OBJECT_HUNGER);
 	auto coinModel = Model(FILE_OBJECT_COIN);
 		
 	// Set Unique Id to Models
@@ -134,7 +149,7 @@ int main()
 	auto scaleSoldier = glm::vec3(0.2f, 0.2f, 0.2f);
 	auto scaleCoin = glm::vec3(0.01f, 0.01f, 0.01f);
 	
-	auto scaleGalp = glm::vec3(0.1f, 0.9f, 0.2f);
+	auto scaleHpPanel = glm::vec3(0.1f, 0.9f, 0.2f);
 	auto scaleScore = glm::vec3(0.1f, 0.9f, 0.2f);
 	auto HungerScore = glm::vec3(0.1f, 0.9f, 0.2f);
 	
@@ -143,21 +158,21 @@ int main()
 	// -------------------------
 	//cyborgModel.printPosition();
 	//soldierModel.printPosition();
-	//coinModel.printPosition();
+	coinModel.printPosition();
 
 	// Apply Scale operation to models
 	// -----------------------------------
 	cyborgModel.ScaleModel(scaleCyborg);
 	soldierModel.ScaleModel(scaleSoldier);
 	coinModel.ScaleModel(scaleCoin);
-	GalpModel.ScaleModel(scaleGalp);
-	ScoreModel.ScaleModel(scaleScore);
-	HungerModel.ScaleModel(HungerScore);
+	hpPanelModel.ScaleModel(scaleHpPanel);
+	scorePanelModel.ScaleModel(scaleScore);
+	hungerPanelModel.ScaleModel(HungerScore);
 
 
 	// Debug Printer
 	// -----------------------------
-	//cyborgModel.printPosition();
+	cyborgModel.printPosition();
 	//soldierModel.printPosition();
 	//coinModel.printPosition();
 
@@ -168,7 +183,7 @@ int main()
 	modelList.push_back(soldierModel);
 	modelList.push_back(coinModel);
 
-
+	
 	// Set object movement types. Default is Normal
 	// ---------------------------------------------
 	soldierModel.setMovementType(MovementType::Random);
@@ -180,16 +195,16 @@ int main()
 	// -----------
 	while (!glfwWindowShouldClose(window))
 	{
-			// Measure speed
-			double currentTime = glfwGetTime();
-			nbFrames++;
-			if (currentTime - lastTime >= 1.0) { // If last prinf() was more than 1sec ago
-				// printf and reset
-				//printf("%f ms/frame\n", 1000.0 / double(nbFrames));
-				//nbFrames = 0;
-				lastTime += 1.0;
-				nbFrames = 0;
-			}
+		// Measure speed
+		double currentTime = glfwGetTime();
+		nbFrames++;
+		if (currentTime - lastTime >= 1.0) { // If last prinf() was more than 1sec ago
+			// printf and reset
+			//printf("%f ms/frame\n", 1000.0 / double(nbFrames));
+			nbFrames = 0;
+			lastTime += 1.0;
+			nbFrames = 0;
+		}
 
 		// per-frame time logic
 		// --------------------
@@ -199,16 +214,6 @@ int main()
 
 		// input
 		// -----
-		processInput(window);
-		//cyborgModel.doCollusion(floorModel);
-		for (int i = 0; i < modelList.size(); i++)
-		{
-			for (int j = 0; j < modelList.size(); j++)
-			{
-				modelList[i].doCollusion(modelList[j]);
-			}
-		}
-		processInputForObject(window, cyborgModel);
 
 		// render
 		// ------
@@ -218,40 +223,46 @@ int main()
 		// don't forget to enable shader before setting uniforms
 		ResourceManager::GetShader(KEY_SHADER_OBJECT).use();
 
+		cyborgModel.doCollusion(coinModel);
+
 		// view/projection transformations
-		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 view = camera.GetViewMatrix();
 		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("projection", projection);
 		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("view", view);
-
-
+		
+		processInput(window, cyborgModel);
+		processInputForObject(window, cyborgModel);
 
 		//// render the loaded model
-		//for (auto model : modelList)
+		//for (int i =0; i< modelList.size(); i++)
 		//{
-		//	ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", model.GetModelMatrix());
-		//	model.Update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+		//	ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", modelList[i].getModelMatrix());
+		//	modelList[i].update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		//}
 
-		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", cyborgModel.getModelMatrix());
-		cyborgModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
-		
-		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", soldierModel.getModelMatrix());
-		soldierModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+		if (checkDistance(cyborgModel))
+		{
+			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", cyborgModel.getModelMatrix());
+			cyborgModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+		}
+		if (checkDistance(soldierModel))
+		{
+			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", soldierModel.getModelMatrix());
+			soldierModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+		}
+		if(checkDistance(coinModel))
+		{
+			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", coinModel.getModelMatrix());
+			coinModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+		}
 
-		//ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", floorModel.GetModelMatrix());
-		//floorModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT), currentFrame);
-
-		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", coinModel.getModelMatrix());
-		coinModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		////////////////////////////////////////////////////-----------------------------
 		if (nbFrames < 1000 && VAR_TOTAL_LIVES!=0) 
 		{
 			// view/projection transformations
 			glm::mat4 ORTHOprojection = glm::orthoLH(-10, 10, -10, 10, -10, 10);
-
-
-
+			
 			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("projection", glm::mat4x4(1));
 			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("view", glm::mat4x4(1));
 
@@ -263,12 +274,12 @@ int main()
 																				 0.0f,0.0f,0.0f,0.0f,//z
 																				 -7.50f,7.50f-i,0.0f,8.0f });
 
-				GalpModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+				hpPanelModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 			}
 
 			int tempscore = VAR_TOTAL_SCORE;
 			float i=0;
-			while(  5<=tempscore ) {
+			while(  5 <= tempscore ) {
 
 				ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", { 1.0f,0.0f,0.0f,0.0f,//x
 																				 0.0f,1.0f,0.0f,0.0f,//y
@@ -276,7 +287,7 @@ int main()
 																				 6.0f - i,6.10f ,0.0f,6.5f });
 				i++;
 				tempscore -= 5;
-				ScoreModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+				scorePanelModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 			}
 			float j = 0;
 			while (0 < tempscore) {
@@ -288,7 +299,7 @@ int main()
 				
 				j++;
 				tempscore -= 1;
-				ScoreModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+				scorePanelModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 			}
 			
 			if (VAR_HUNGER < 10) {
@@ -297,7 +308,7 @@ int main()
 																				 0.0f,0.0f,0.0f,0.0f,//z
 																				 0.0f,-7.50f,0.0f,8.0f });
 				VAR_HUNGER = VAR_HUNGER +( 0.000001*SCR_WIDTH);
-				HungerModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+				hungerPanelModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 			}
 			else if( VAR_TOTAL_LIVES > 0)
 			{
@@ -407,7 +418,7 @@ unsigned int skyboxInit()
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
+void processInput(GLFWwindow *window, Model &model)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 	{
@@ -416,26 +427,52 @@ void processInput(GLFWwindow *window)
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 	{
 		camera.ProcessKeyboard(Directions::FORWARD, deltaTime);
+		//camView = glm::translate(camView, glm::vec3(0.0f, 0.0f, SPEED_LIMIT));
+		if (isGodMod)
+			model.tempMove(glm::vec3(SPEED_LIMIT, 0.0f, 0.0f));
 	}
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 	{
 		camera.ProcessKeyboard(Directions::BACKWARD, deltaTime);
+		//camView = glm::translate(camView, glm::vec3(0.0f, 0.0f, -SPEED_LIMIT));
+		if (isGodMod)
+			model.tempMove(glm::vec3(-SPEED_LIMIT, 0.0f, 0.0f));
 	}
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 	{
 		camera.ProcessKeyboard(Directions::LEFT, deltaTime);
+		//camView = glm::translate(camView, glm::vec3(SPEED_LIMIT, 0.0f, 0.0f));
+		if (isGodMod)
+			model.tempMove(glm::vec3(0.0f, 0.0f, SPEED_LIMIT));
 	}
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 	{
 		camera.ProcessKeyboard(Directions::RIGHT, deltaTime);
+		//camView = glm::translate(camView, glm::vec3(-SPEED_LIMIT, 0.0f, 0.0f));
+		if (isGodMod)
+			model.tempMove(glm::vec3(0.0f, 0.0f, -SPEED_LIMIT));
 	}
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
 	{
 		camera.ProcessKeyboard(Directions::UP, deltaTime);
+		//camView = glm::translate(camView, glm::vec3(0.0f, SPEED_LIMIT, 0.0f));
+		if (isGodMod)
+			model.tempMove(glm::vec3(0.0f, SPEED_LIMIT, 0.0f));
 	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 	{
 		camera.ProcessKeyboard(Directions::DOWN, deltaTime);
+		//camView = glm::translate(camView, glm::vec3(0.0f, -SPEED_LIMIT, 0.0f));
+		if (isGodMod)
+			model.tempMove(glm::vec3(0.0f, -SPEED_LIMIT, 0.0f));
+	}
+	if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS)
+	{
+		isGodMod = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
+	{
+		isGodMod = false;
 	}
 }
 

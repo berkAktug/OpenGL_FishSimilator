@@ -70,15 +70,18 @@ public:
 
 	glm::mat4 getModelMatrix();
 
+	glm::vec3 getPosition();
+
 	void setPosition(glm::vec3 pos);
+
+	void tempMove(glm::vec3 vec);
 
 private:
 	/*  Model Data  */
 	int ID;
-	//float deltaTime;
-	//float lastFrame;
 
 	Object cage;
+
 	/*  Functions   */
 	void _Draw(Shader shader);
 
@@ -138,9 +141,6 @@ void Model::doCollusion(Model &other)
 		return;
 	}
 	cage.doCollusion(other.cage, CollusionDetectionType::CollusionAABB);
-
-	//this->_move();
-	//other._move();
 }
 
 MovementType Model::getRandomMovmeent()
@@ -161,19 +161,22 @@ void Model::ScaleModel(glm::vec3 scaleVector)
 void Model::update(Shader shader)
 {
 	float currentFrame = glfwGetTime();
-	//deltaTime = currentFrame - lastFrame;
-	//lastFrame = currentFrame;
 
 	cage.update(currentFrame);
+	//if (cage.getCenter().x < 10 )
+	//{
 
-	_Draw(shader);
+		_Draw(shader);
+
+	//}
+	//cage.update(currentFrame);
+
+	//_Draw(shader);
 }
 
 void Model::turnTowards(Directions dir)
 {
-	//printPosition();
 	cage.turnTowards(dir);
-	//_move();
 }
 
 inline glm::mat4 Model::getModelMatrix()
@@ -181,9 +184,19 @@ inline glm::mat4 Model::getModelMatrix()
 	return cage.getModelMatrix();
 }
 
+glm::vec3 Model::getPosition()
+{
+	return cage.getCenter();
+}
+
 inline void Model::setPosition(glm::vec3 pos)
 {
 	cage.placeTo(pos);
+}
+
+void Model::tempMove(glm::vec3 vec)
+{
+	cage.tempMove(vec);
 }
 
 // draws the model, and thus all its meshes
@@ -194,12 +207,6 @@ void Model::_Draw(Shader shader)
 		meshes[i].Draw(shader);
 	}
 }
-
-//void Model::_move()
-//{
-//	//printPosition();
-//	cage.move();
-//}
 
 // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
 void Model::_loadModel(std::string const &path)

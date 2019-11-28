@@ -6,12 +6,14 @@
 // Default Object movement values
 const glm::vec3 VECTOR_ZERO = glm::vec3(0.0, 0.0, 0.0);
 
-const double divisionCoefficient = 40;
+const double divisionCoefficient = 80;
 const double SPEED_LIMIT = 1.0 / divisionCoefficient;
 const double ACCELERATE_RATE = 0.6 / divisionCoefficient;
 const double STOP_SPEED = 0.4 / divisionCoefficient;
 const double FRICTION_COEFFICIENT = 20.0 / divisionCoefficient;
 const double FRICTION_LIMIT = 1.6 / divisionCoefficient;
+
+const double TempSpeed = SPEED_LIMIT;
 
 const double GAMEBOUNDRY_X =  30.0;
 const double GAMEBOUNDRY_Y =  20.0;
@@ -31,6 +33,9 @@ const float ZOOM = 45.0f;
 const unsigned int SCR_WIDTH = 1280;
 const unsigned int SCR_HEIGHT = 720;
 
+
+//light settings -- currently doesn't work.
+glm::vec3 lightPos(0.0f, 60.0f, 64.9f);
 
 // Global Game values
 int VAR_TOTAL_LIVES = 3;

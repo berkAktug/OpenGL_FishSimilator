@@ -25,6 +25,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="GameEngine.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="CollusionAlgo.h" />
     <ClInclude Include="PhysicsEngine.h" />

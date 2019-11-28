@@ -28,14 +28,12 @@ public:
 	BoxAABB getCollusionBox();
 	void setCollusionBox(BoxAABB box);
 
-	//void setupCollusionSphere();
 	void setupCollusionBox(glm::vec3 vector);
 
 	void printBox();
 
 	void doCollusion(Object & other, CollusionDetectionType type);
 
-	//Point getCenter();
 	glm::vec3 getCenter();
 	void placeTo(glm::vec3 pos);
 	void placeRandomly();
@@ -59,10 +57,10 @@ public:
 
 	void setupCenter();
 
+	void tempMove(glm::vec3 vec);
+
 private:
 	BoxAABB box;
-	//SphereAABB sphere;
-	//Point center;
 
 	glm::mat4 _modelMatrix;
 
@@ -102,7 +100,11 @@ private:
 	void _checkVelocityLimit();
 	void _stopVelocityIfRequired(int pos);
 	void _adjustVelocity();
-	bool _checkCollusionAABB(Object &other);
+
+	void _checkBoxBoundry();
+
+	//bool _checkCollusionAABB(const Object &other);
+	
 	void _solveSurfaceCollusion();
 	bool _checkIsInGameField();
 	void _surfaceBounce();
@@ -122,7 +124,7 @@ void Object::setCollusionBox(BoxAABB box)
 
 void Object::scale(glm::vec3 scale)
 {
-	_scaleFactor *= glm::vec3(1.0f) / scale;
+	_scaleFactor /= scale;
 
 	double depth = box.max.x - box.min.x;
 	double height = box.max.x - box.min.y;
@@ -141,7 +143,8 @@ void Object::scale(glm::vec3 scale)
 	box.max.y += diff_height / 2;
 	box.min.y -= diff_height / 2;
 
-	//setupCollusionSphere();
+	_checkBoxBoundry();
+
 
 	_modelMatrix = glm::scale(_modelMatrix, scale);
 }
@@ -176,18 +179,7 @@ void Object::turnTowards(Directions dir)
 
 void Object::moveTo(glm::vec3 point)
 {
-	if (box.max.x < box.min.x)
-	{
-		std::swap(box.max.x, box.min.x);
-	}
-	if (box.max.y < box.min.y)
-	{
-		std::swap(box.max.y, box.min.y);
-	}
-	if (box.max.z < box.min.z)
-	{
-		std::swap(box.max.z, box.min.z);
-	}
+	_checkBoxBoundry();
 
 	double distx = box.max.x - box.min.x;
 	box.max.x = point.x + distx / 2;
@@ -213,10 +205,6 @@ void Object::move()
 
 	if (movementType == MovementType::Normal)
 	{
-		//box.max += acc;
-		//box.min += acc;
-
-		//center += vel;
 		position += acc;
 
 		_moveModel(acc);
@@ -226,22 +214,7 @@ void Object::move()
 		_moveRandom();
 		_moveModel(acc);
 	}
-	//box.max.x += vel.x;
-	//box.min.x += vel.x;
-
-	//box.max.y += vel.y;
-	//box.min.y += vel.y;
-
-	//box.max.z += vel.z;
-	//box.min.z += vel.z;
-
-
 }
-
-//void Object::setupCollusionSphere()
-//{
-//	_setupCenter();
-//}
 
 void Object::setupCollusionBox(glm::vec3 vector)
 {
@@ -265,11 +238,13 @@ void Object::doCollusion(Object &other, CollusionDetectionType type)
 	if (! _checkIsInGameField())
 	{
 		// lhs object is not within game field.
+		std::cout << "Object1 is not in gamefield. Returning them to the mother base. Over." << std::endl;
 		_solveSurfaceCollusion();
 	}
 	if(! other._checkIsInGameField())
 	{
 		// rhs object is not within game field.
+		std::cout << "Object2 is not in gamefield. Returning them to the mother base. Over." << std::endl;
 		_solveSurfaceCollusion();
 	}
 
@@ -286,7 +261,9 @@ void Object::doCollusion(Object &other, CollusionDetectionType type)
 		//}
 		break;
 	case CollusionAABB:
-		if (_checkCollusionAABB(other))
+		//std::cout << "AABB Box" << std::endl;
+		//if (_checkCollusionAABB(other))
+		if (CollusionAlgo::checkCollusionAABB(this->box, other.box))
 		{
 			std::cout << "Collusion Detected AABB Box" << std::endl;
 			box.print();
@@ -323,7 +300,6 @@ void Object::placeRandomly()
 	if (randsignx == 0) randx *= -1.0;
 	if (randsignz == 0) randz *= -1.0;
 
-	//auto pos = Point(randx, randy, randz);
 	auto pos = glm::vec3(randx, randy, randz);
 
 	moveTo(pos);
@@ -386,7 +362,7 @@ void Object::update(float currentFrame)
 
 	if (!canMove())
 	{
-		// Do nothing. object is not able to move.
+		// Stop motion. object is not able to move.
 		vel = VECTOR_ZERO;
 		acc = VECTOR_ZERO;
 		return;
@@ -417,6 +393,12 @@ void Object::setupCenter()
 	position.x = (box.max.x + box.min.x) / 2;
 	position.y = (box.max.y + box.min.y) / 2;
 	position.z = (box.max.z + box.min.z) / 2;
+}
+
+void Object::tempMove(glm::vec3 vec)
+{
+	acc = vec;
+	_moveModel(vec);
 }
 
 void Object::_moveRandom()
@@ -539,10 +521,26 @@ inline void Object::_adjustVelocity()
 	_stopVelocityIfRequired(2);
 }
 
-inline bool Object::_checkCollusionAABB(Object & other)
+inline void Object::_checkBoxBoundry()
 {
-	return (box.intersect(other.box) || other.box.intersect(box));
+	if (box.max.x < box.min.x)
+	{
+		std::swap(box.max.x, box.min.x);
+	}
+	if (box.max.y < box.min.y)
+	{
+		std::swap(box.max.y, box.min.y);
+	}
+	if (box.max.z < box.min.z)
+	{
+		std::swap(box.max.z, box.min.z);
+	}
 }
+
+//inline bool Object::_checkCollusionAABB(const Object & other)
+//{
+//	return (box.intersect(other.box) || other.box.intersect(box));
+//}
 
 void Object::_solveSurfaceCollusion()
 {
@@ -611,7 +609,7 @@ bool Object::_isCommonCollusionSolutionEnough(Object &other)
 	
 void Object::_solveCollusionBox(Object &other)
 {
-	//if (!_isCommonCollusionSolutionEnough(other))
+	if (!_isCommonCollusionSolutionEnough(other))
 	{
 		if (! this->isMoving() && ! other.isMoving())
 		{
