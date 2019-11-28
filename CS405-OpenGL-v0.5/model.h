@@ -37,15 +37,19 @@ public:
 
 	/*  Functions   */
 	// constructor, expects a filepath to a 3D model.
-	Model(std::string const &path, bool gamma = false) : gammaCorrection(gamma), cage(Object())
+	Model(std::string const &path, bool gamma = false) : gammaCorrection(gamma)//, cage(Object())
 	{
 		_loadModel(path);
 
-		cage.setupCenter();
+		cage = new Object(max,min);
+
+		cage->init();
+
+		//cage->setupCenter();
 		ID = rand() % 1000;
 
 		// Set model to random place;
-		cage.placeRandomly();
+		cage->placeRandomly();
 	}
 
 	void setID(int id);
@@ -57,6 +61,8 @@ public:
 	void printPosition();
 
 	void doCollusion(Model &other);
+
+	void doCollusionCoin(Model &other);
 
 	MovementType getRandomMovmeent();
 
@@ -74,13 +80,14 @@ public:
 
 	void setPosition(glm::vec3 pos);
 
-	void tempMove(glm::vec3 vec);
-
 private:
 	/*  Model Data  */
 	int ID;
 
-	Object cage;
+	Point max;
+	Point min;
+
+	Object *cage;
 
 	/*  Functions   */
 	void _Draw(Shader shader);
@@ -113,7 +120,7 @@ void Model::addTexture(std::string path, std::string type = "texture_diffuse")
 void Model::printModel()
 {
 	std::cout << "Object " << ID << " is at~~" << std::endl;
-	glm::mat4 pMat4 = cage.getModelMatrix();  // your matrix
+	glm::mat4 pMat4 = cage->getModelMatrix();  // your matrix
 
 	double dArray[16] = { 0.0 };
 
@@ -130,8 +137,8 @@ void Model::printModel()
 
 void Model::printPosition()
 {
-	std::cout << "Object " << ID << " is at~~";
-	cage.printBox();
+	std::cout << "Object " << ID << " is at~~";	
+	cage->printBox();
 }
 
 void Model::doCollusion(Model &other)
@@ -140,63 +147,67 @@ void Model::doCollusion(Model &other)
 	{
 		return;
 	}
-	cage.doCollusion(other.cage, CollusionDetectionType::CollusionAABB);
+	cage->doCollusion(*other.cage);
+}
+
+void Model::doCollusionCoin(Model & other)
+{
+	if (this->ID == other.ID)
+	{
+		return;
+	}
+	cage->doCollusion(*other.cage);
 }
 
 MovementType Model::getRandomMovmeent()
 {
-	return cage.getMovementType();
+	return cage->getMovementType();
 }
 
 void Model::setMovementType(MovementType movementType)
 {
-	cage.setMovementType(movementType);
+	cage->setMovementType(movementType);
 }
 
 void Model::ScaleModel(glm::vec3 scaleVector)
 {
-	cage.scale(scaleVector);
+	cage->scale(scaleVector);
 }
 
 void Model::update(Shader shader)
 {
 	float currentFrame = glfwGetTime();
 
-	cage.update(currentFrame);
-	//if (cage.getCenter().x < 10 )
+	cage->update(currentFrame);
+	//if (cage->getCenter().x < 10 )
 	//{
 
 		_Draw(shader);
 
 	//}
-	//cage.update(currentFrame);
+	//cage->update(currentFrame);
 
 	//_Draw(shader);
 }
 
 void Model::turnTowards(Directions dir)
 {
-	cage.turnTowards(dir);
+	cage->turnTowards(dir);
 }
 
 inline glm::mat4 Model::getModelMatrix()
 {
-	return cage.getModelMatrix();
+	return cage->getModelMatrix();
 }
 
 glm::vec3 Model::getPosition()
 {
-	return cage.getCenter();
+	return cage->getCenter();
 }
 
 inline void Model::setPosition(glm::vec3 pos)
 {
-	cage.placeTo(pos);
-}
-
-void Model::tempMove(glm::vec3 vec)
-{
-	cage.tempMove(vec);
+	cage->placeTo(pos);
 }
 
 // draws the model, and thus all its meshes
@@ -265,7 +276,14 @@ Mesh Model::_processMesh(aiMesh *mesh, const aiScene *scene)
 		vertex.Position = vector;
 		//////////////////////////////////////
 
-		cage.setupCollusionBox(vector);
+		//cage->setupCollusionBox(vector);
+		if (min.x > vector.x) { min.x = vector.x; }
+		if (min.y > vector.y) { min.y = vector.x; }
+		if (min.z > vector.z) { min.z = vector.z; }
+
+		if (max.x < vector.x) { max.x = vector.x; }
+		if (max.y < vector.y) { max.y = vector.x; }
+		if (max.z < vector.z) { max.z = vector.z; }		
 
 		//////////////////////////////////////
 		// normals

@@ -22,6 +22,13 @@ enum Directions {
 	//RIGHT_BACKWARD
 };
 
+enum ObjectType {
+	Player,
+	Enemy,
+	Coin,
+	Envoirmental
+};
+
 enum CageType {
 	CageBox,
 	CageSphere
@@ -37,7 +44,8 @@ enum MovementType {
 
 enum CollusionDetectionType {
 	CollusionSimple,
-	CollusionAABB
+	CollusionAABB,
+	CollusionAABBCoin
 };
 
 

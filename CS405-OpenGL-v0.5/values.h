@@ -6,7 +6,7 @@
 // Default Object movement values
 const glm::vec3 VECTOR_ZERO = glm::vec3(0.0, 0.0, 0.0);
 
-const double divisionCoefficient = 80;
+const double divisionCoefficient = 40;
 const double SPEED_LIMIT = 1.0 / divisionCoefficient;
 const double ACCELERATE_RATE = 0.6 / divisionCoefficient;
 const double STOP_SPEED = 0.4 / divisionCoefficient;

@@ -1,5 +1,5 @@
-#ifndef GAMEOBJECT_H
-#define GAMEOBJECT_H
+#ifndef OBJECT_H
+#define OBJECT_H
 
 #include "Enums.h"
 #include "values.h"
@@ -13,10 +13,17 @@ static BoxAABB gameBoundry = BoxAABB(Point(GAMEBOUNDRY_X, GAMEBOUNDRY_Y, GAMEBOU
 class Object
 {
 public:
-	Object() : isMoveable(true), frameCounter(0), vel(VECTOR_ZERO), _scaleFactor(glm::vec3(1.0f)),
-		movementType(MovementType::Normal), lastFrame(0.0f)
-	{}
+	Object(Point max, Point min) 
+		: frameCounter(0), movementType(MovementType::Normal), lastFrame(0.0f)//, physics()
+	{
+		box.max = max;
+		box.min = min;
+		
+		physics = new PhysicEngine();
+	}
 	
+	void init();
+
 	void update(float currentFrame);
 
 	bool isMoving();
@@ -32,7 +39,7 @@ public:
 
 	void printBox();
 
-	void doCollusion(Object & other, CollusionDetectionType type);
+	void doCollusion(Object & other);
 
 	glm::vec3 getCenter();
 	void placeTo(glm::vec3 pos);
@@ -57,10 +64,10 @@ public:
 
 	void setupCenter();
 
-	void tempMove(glm::vec3 vec);
-
 private:
 	BoxAABB box;
+
+	PhysicEngine *physics;
 
 	glm::mat4 _modelMatrix;
 
@@ -72,39 +79,12 @@ private:
 
 	MovementType movementType;
 
-	bool isMoveable;
-
-
-	//////////////////////
-	glm::vec3 upVector;
-	glm::vec3 rightVector;
-	glm::vec3 frontVector;
-
-	glm::vec3 position;
-	//////////////////////
-
-	glm::vec3 _scaleFactor;
-
-	glm::vec3 vel;
-	glm::vec3 acc;
-
-
 	void _moveRandom();
 	void _moveModelTo(const glm::vec3 &vector);
 	void _moveModel(const glm::vec3 &vector);
 
-	
-	void _applyFriction(int accPos, int velPos, const glm::vec3 & friction);
-	void _setAndApplyFriction();
-	void _adjustVelocityByLimit(int pos);
-	void _checkVelocityLimit();
-	void _stopVelocityIfRequired(int pos);
-	void _adjustVelocity();
-
 	void _checkBoxBoundry();
 
-	//bool _checkCollusionAABB(const Object &other);
-	
 	void _solveSurfaceCollusion();
 	bool _checkIsInGameField();
 	void _surfaceBounce();
@@ -124,7 +104,7 @@ void Object::setCollusionBox(BoxAABB box)
 
 void Object::scale(glm::vec3 scale)
 {
-	_scaleFactor /= scale;
+	physics->setScaleFactor(physics->getScaleFactor()/scale);
 
 	double depth = box.max.x - box.min.x;
 	double height = box.max.x - box.min.y;
@@ -145,7 +125,6 @@ void Object::scale(glm::vec3 scale)
 
 	_checkBoxBoundry();
 
-
 	_modelMatrix = glm::scale(_modelMatrix, scale);
 }
 
@@ -154,27 +133,34 @@ void Object::turnTowards(Directions dir)
 	switch (dir)
 	{
 	case Directions::UP:
-		acc += glm::vec3(0.0f, ACCELERATE_RATE, 0.0f);
+		//physics->accelerateTowards(glm::vec3(0.0f, ACCELERATE_RATE, 0.0f));
+		physics->setAcceleration(glm::vec3(0.0f, ACCELERATE_RATE, 0.0f));
 		break;
 	case Directions::DOWN:
-		acc += glm::vec3(0.0f, -ACCELERATE_RATE, 0.0f);
+		//physics->accelerateTowards(glm::vec3(0.0f, -ACCELERATE_RATE, 0.0f));
+		physics->setAcceleration(glm::vec3(0.0f, -ACCELERATE_RATE, 0.0f));
 		break;
 	case Directions::LEFT:
-		acc += glm::vec3(ACCELERATE_RATE, 0.0f, 0.0f);
+		//physics->accelerateTowards(glm::vec3(ACCELERATE_RATE, 0.0f, 0.0f));
+		physics->setAcceleration(glm::vec3(ACCELERATE_RATE, 0.0f, 0.0f));
 		break;
 	case Directions::RIGHT:
-		acc += glm::vec3(-ACCELERATE_RATE, 0.0f, 0.0f);
+		//physics->accelerateTowards(glm::vec3(-ACCELERATE_RATE, 0.0f, 0.0f));
+		physics->setAcceleration(glm::vec3(-ACCELERATE_RATE, 0.0f, 0.0f));
 		break;
 	case Directions::FORWARD:
-		acc += glm::vec3(0.0f, 0.0f, ACCELERATE_RATE);
+		//physics->accelerateTowards(glm::vec3(0.0f, 0.0f, ACCELERATE_RATE));
+		physics->setAcceleration(glm::vec3(0.0f, 0.0f, ACCELERATE_RATE));
 		break;
 	case Directions::BACKWARD:
-		acc += glm::vec3(0.0f, 0.0f, -ACCELERATE_RATE);
+		//physics->accelerateTowards(glm::vec3(0.0f, 0.0f, -ACCELERATE_RATE));
+		physics->setAcceleration(glm::vec3(0.0f, 0.0f, -ACCELERATE_RATE));
 		break;
 	default:
 		break;
 	}
-	vel += acc;
+	//vel += acc;
+	physics->setVelocity(physics->getVelocity() + physics->getAcceleration());
 }
 
 void Object::moveTo(glm::vec3 point)
@@ -201,18 +187,18 @@ void Object::move()
 		return;
 	}
 	
-	box.move(acc);
+	box.move(physics->getAcceleration());
 
 	if (movementType == MovementType::Normal)
 	{
-		position += acc;
+		physics->applyMotion(physics->getAcceleration());
 
-		_moveModel(acc);
+		_moveModel(physics->getAcceleration());
 	}
 	else if (movementType == MovementType::Random)
 	{
 		_moveRandom();
-		_moveModel(acc);
+		_moveModel(physics->getAcceleration());
 	}
 }
 
@@ -232,7 +218,7 @@ void Object::printBox()
 	box.print();
 }
 
-void Object::doCollusion(Object &other, CollusionDetectionType type)
+void Object::doCollusion(Object &other)
 {
 
 	if (! _checkIsInGameField())
@@ -248,38 +234,19 @@ void Object::doCollusion(Object &other, CollusionDetectionType type)
 		_solveSurfaceCollusion();
 	}
 
-	switch (type)
+	if (CollusionAlgo::checkCollusionAABB(this->box, other.box))
 	{
-	case CollusionSimple:
-		//if (CollusionAlgo::checkCollusionSimple(this->box, other.box))
-		//{
-		//	std::cout << "Collusion Detected simple Box" << std::endl;
-		//	box.print();
-		//	other.box.print();
+		std::cout << "Collusion Detected AABB Box" << std::endl;
+		box.print();
+		other.box.print();
 
-		//	_solveCollusionBox(other);
-		//}
-		break;
-	case CollusionAABB:
-		//std::cout << "AABB Box" << std::endl;
-		//if (_checkCollusionAABB(other))
-		if (CollusionAlgo::checkCollusionAABB(this->box, other.box))
-		{
-			std::cout << "Collusion Detected AABB Box" << std::endl;
-			box.print();
-			other.box.print();
-
-			_solveCollusionBox(other);
-		}
-		break;
-	default:
-		break;
+		_solveCollusionBox(other);
 	}
 }
 
 glm::vec3 Object::getCenter()
 {
-	return position;
+	return physics->getCenter();
 }
 
 void Object::placeTo(glm::vec3 pos)
@@ -309,67 +276,67 @@ void Object::placeRandomly()
 
 void Object::stopMovement()
 {
-	this->vel = VECTOR_ZERO;
+	physics->stopMotion();
 }
 
 bool Object::canMove()
 {
-	return this->isMoveable;
+	return physics->canMove();
 }
 
 void Object::setMoveablity(bool mobility)
 {
-	this->isMoveable = mobility;
+	physics->setMoveablity(mobility);
 }
 
 glm::vec3 Object::getVelocity()
 {
-	return this->vel;
+	return physics->getVelocity();
 }
 
 void Object::setVelocity(glm::vec3 velocity)
 {
 	if (!this->canMove())
 	{
-		vel = VECTOR_ZERO;
-		acc = VECTOR_ZERO;
+		physics->stopMotion();
 		return;
 	}
-	this->vel = velocity;
+	physics->setVelocity(velocity);
 }
 
 bool Object::isMoving()
 {
-	return vel != VECTOR_ZERO;
+	return physics->isMoving();
 }
 
 glm::vec3 Object::getAcc()
 {
-	return this->acc;
+	return physics->getAcceleration();
 }
 
 void Object::setAcc(glm::vec3 acc)
 {
-	this->acc = acc;
+	physics->setAcceleration(acc);
+}
+
+void Object::init()
+{
+	setupCenter();
 }
 
 void Object::update(float currentFrame)
 {
-	//float currentFrame = glfwGetTime();
 	deltaTime = currentFrame - lastFrame;
 	lastFrame = currentFrame;
 
 
 	if (!canMove())
 	{
-		// Stop motion. object is not able to move.
-		vel = VECTOR_ZERO;
-		acc = VECTOR_ZERO;
+		physics->stopMotion();
 		return;
 	}
 
-	_setAndApplyFriction();
-	_adjustVelocity();
+	physics->applyPhysics(deltaTime);
 	move();
 }
 
@@ -390,15 +357,11 @@ inline glm::mat4 Object::getModelMatrix()
 
 void Object::setupCenter()
 {
-	position.x = (box.max.x + box.min.x) / 2;
-	position.y = (box.max.y + box.min.y) / 2;
-	position.z = (box.max.z + box.min.z) / 2;
-}
-
-void Object::tempMove(glm::vec3 vec)
-{
-	acc = vec;
-	_moveModel(vec);
+	glm::vec3 pos;
+	pos.x = (box.max.x + box.min.x) / 2;
+	pos.y = (box.max.y + box.min.y) / 2;
+	pos.z = (box.max.z + box.min.z) / 2;
+	physics->setCenter(pos);
 }
 
 void Object::_moveRandom()
@@ -413,22 +376,22 @@ void Object::_moveRandom()
 	switch (randDirection)
 	{
 	case 0://Directions::UP:
-		acc += glm::vec3(0.0f, ACCELERATE_RATE, 0.0f);
+		physics->accelerateTowards(glm::vec3(0.0f, ACCELERATE_RATE, 0.0f));
 		break;
 	case 1://Directions::DOWN:
-		acc += glm::vec3(0.0f, -ACCELERATE_RATE, 0.0f);
+		physics->accelerateTowards(glm::vec3(0.0f, -ACCELERATE_RATE, 0.0f));
 		break;
 	case 2://Directions::LEFT:
-		acc += glm::vec3(ACCELERATE_RATE, 0.0f, 0.0f);
+		physics->accelerateTowards(glm::vec3(ACCELERATE_RATE, 0.0f, 0.0f));
 		break;
 	case 3://Directions::RIGHT:
-		acc += glm::vec3(-ACCELERATE_RATE, 0.0f, 0.0f);
+		physics->accelerateTowards(glm::vec3(-ACCELERATE_RATE, 0.0f, 0.0f));
 		break;
 	case 4://Directions::FORWARD:
-		acc += glm::vec3(0.0f, 0.0f, ACCELERATE_RATE);
+		physics->accelerateTowards(glm::vec3(0.0f, 0.0f, ACCELERATE_RATE));
 		break;
 	case 5://Directions::BACKWARD:
-		acc += glm::vec3(0.0f, 0.0f, -ACCELERATE_RATE);
+		physics->accelerateTowards(glm::vec3(0.0f, 0.0f, -ACCELERATE_RATE));
 		break;
 	default:
 		break;
@@ -437,89 +400,89 @@ void Object::_moveRandom()
 
 inline void Object::_moveModel(const glm::vec3 &vector)
 {
-	_modelMatrix = glm::translate(_modelMatrix, vector * _scaleFactor);
+	_modelMatrix = glm::translate(_modelMatrix, vector * physics->getScaleFactor());
 }
 
 inline void Object::_moveModelTo(const glm::vec3 & vector)
 {
-	_modelMatrix = glm::translate(glm::mat4(1.0f), vector * _scaleFactor);
+	_modelMatrix = glm::translate(glm::mat4(1.0f), vector * physics->getScaleFactor());
 }
 
 
-inline void Object::_applyFriction(int accPos, int velPos, const glm::vec3 &friction)
-{
-	vel[velPos] > 0 ? acc -= friction : acc += friction;
+//inline void Object::_applyFriction(int accPos, int velPos, const glm::vec3 &friction)
+//{
+	//vel[velPos] > 0 ? acc -= friction : acc += friction;
 
-	if (acc[accPos] < 0 && acc[accPos] < -FRICTION_LIMIT)
-	{
-		acc[accPos] = -FRICTION_LIMIT;
-	}
-	else if (acc[accPos] > 0 && acc[accPos] > FRICTION_LIMIT)
-	{
-		acc[accPos] = FRICTION_LIMIT;
-	}
-}
+	//if (acc[accPos] < 0 && acc[accPos] < -FRICTION_LIMIT)
+	//{
+	//	acc[accPos] = -FRICTION_LIMIT;
+	//}
+	//else if (acc[accPos] > 0 && acc[accPos] > FRICTION_LIMIT)
+	//{
+	//	acc[accPos] = FRICTION_LIMIT;
+	//}
+//}
 	
-void Object::_setAndApplyFriction()
-{
-	if (vel.x != 0)
-	{
-		auto friction = glm::vec3(FRICTION_COEFFICIENT * deltaTime, 0.0f, 0.0f);
+//void Object::_setAndApplyFriction()
+//{
+	//if (vel.x != 0)
+	//{
+	//	auto friction = glm::vec3(FRICTION_COEFFICIENT * deltaTime, 0.0f, 0.0f);
 
-		_applyFriction(0, 0, friction);
-	}
-	if (vel.y != 0)
-	{
-		auto friction = glm::vec3(0.0f, FRICTION_COEFFICIENT * deltaTime, 0.0f);
+	//	_applyFriction(0, 0, friction);
+	//}
+	//if (vel.y != 0)
+	//{
+	//	auto friction = glm::vec3(0.0f, FRICTION_COEFFICIENT * deltaTime, 0.0f);
 
-		_applyFriction(1, 1, friction);
-	}
-	if (vel.z != 0)
-	{
-		auto friction = glm::vec3(0.0f, 0.0f, FRICTION_COEFFICIENT * deltaTime);
+	//	_applyFriction(1, 1, friction);
+	//}
+	//if (vel.z != 0)
+	//{
+	//	auto friction = glm::vec3(0.0f, 0.0f, FRICTION_COEFFICIENT * deltaTime);
 
-		_applyFriction(2, 2, friction);
-	}
-}
+	//	_applyFriction(2, 2, friction);
+	//}
+//}
 	
-inline void Object::_adjustVelocityByLimit(int pos)
-{
-	if (vel[pos] > SPEED_LIMIT)
-	{
-		vel[pos] = SPEED_LIMIT;
-	}
-	else if (vel[pos]< -SPEED_LIMIT)
-	{
-		vel[pos] = -SPEED_LIMIT;
-	}
-}
-
-inline void Object::_checkVelocityLimit()
-{
-	vel += acc;
-
-	_adjustVelocityByLimit(0);
-	_adjustVelocityByLimit(1);
-	_adjustVelocityByLimit(2);
-}
-
-inline void Object::_stopVelocityIfRequired(int pos)
-{
-	if ((vel[pos]< STOP_SPEED && vel[pos] >= 0) || (vel[pos] > -STOP_SPEED && vel[pos] <= 0))
-	{
-		vel[pos] = 0.0;
-		acc[pos]= 0.0;
-	}
-}
-
-inline void Object::_adjustVelocity()
-{
-	_checkVelocityLimit();
-
-	_stopVelocityIfRequired(0);
-	_stopVelocityIfRequired(1);
-	_stopVelocityIfRequired(2);
-}
+//inline void Object::_adjustVelocityByLimit(int pos)
+//{
+//	if (vel[pos] > SPEED_LIMIT)
+//	{
+//		vel[pos] = SPEED_LIMIT;
+//	}
+//	else if (vel[pos]< -SPEED_LIMIT)
+//	{
+//		vel[pos] = -SPEED_LIMIT;
+//	}
+//}
+//
+//inline void Object::_checkVelocityLimit()
+//{
+//	vel += acc;
+//
+//	_adjustVelocityByLimit(0);
+//	_adjustVelocityByLimit(1);
+//	_adjustVelocityByLimit(2);
+//}
+//
+//inline void Object::_stopVelocityIfRequired(int pos)
+//{
+//	if ((vel[pos]< STOP_SPEED && vel[pos] >= 0) || (vel[pos] > -STOP_SPEED && vel[pos] <= 0))
+//	{
+//		vel[pos] = 0.0;
+//		acc[pos]= 0.0;
+//	}
+//}
+//
+//inline void Object::_adjustVelocity()
+//{
+//	_checkVelocityLimit();
+//
+//	_stopVelocityIfRequired(0);
+//	_stopVelocityIfRequired(1);
+//	_stopVelocityIfRequired(2);
+//}
 
 inline void Object::_checkBoxBoundry()
 {
@@ -575,11 +538,12 @@ inline void Object::_surfaceBounce()
 {
 	if (!isMoving())
 	{
-		vel = VECTOR_Y_POSITIVE;
+		physics->setVelocity(VECTOR_Y_POSITIVE);
 	}
 	else
 	{
-		vel = -vel;
+		physics->reverseMotion();
+		//vel = -vel;
 	}
 }
 
@@ -625,17 +589,21 @@ void Object::_solveCollusionBox(Object &other)
 				
 			if (this->canMove())
 			{
-				this->vel = push_vec;
+				physics->setVelocity(push_vec);
+				//this->vel = push_vec;
 			}
 			if (other.canMove())
 			{
-				other.vel = - push_vec;
+				other.physics->setVelocity(-push_vec);
+				//other.vel = - push_vec;
 			}
 		}
 		else
 		{
-			this->vel = -this->vel;
-			other.vel = -other.vel;
+			physics->reverseMotion();
+			other.physics->reverseMotion();
+			//this->vel = -this->vel;
+			//other.vel = -other.vel;
 		}
 	}
 }

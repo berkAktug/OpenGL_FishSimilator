@@ -23,6 +23,8 @@ void processInput(GLFWwindow *window, Model &model);
 unsigned int loadTexture(const char *path);
 unsigned int loadCubemap(std::vector<std::string> faces);
 
+void moveTogether(Directions dir, Model &model);
+
 void processInputForObject(GLFWwindow *window, Model &model);
 unsigned int skyboxInit();
 
@@ -54,7 +56,7 @@ bool checkDistance(Model& model)
 						   + pow(camera.getPosition().y - model.getPosition().y,2)
 						   + pow(camera.getPosition().z - model.getPosition().z,2));
 
-	std::cout << dist << std::endl;
+	//std::cout << dist << std::endl;
 	if (dist < 25.0)
 	{
 		return true;
@@ -62,7 +64,7 @@ bool checkDistance(Model& model)
 	return false;
 }
 
-std::vector<Model> modelList;
+std::vector<Model*> modelList;
 
 // PFTT
 unsigned int skyboxVAO, skyboxVBO;
@@ -132,10 +134,19 @@ int main()
 	// ---------------------------------------
 	auto cyborgModel = Model(FILE_OBJECT_CYBORG);
 	auto soldierModel = Model(FILE_OBJECT_NANOSUIT);
+
+	auto coinModel = Model(FILE_OBJECT_COIN);
+	auto coinModel2 = Model(FILE_OBJECT_COIN);
+	auto coinModel3 = Model(FILE_OBJECT_COIN);
+	auto coinModel4 = Model(FILE_OBJECT_COIN);
+	//auto coinModel5 = Model(FILE_OBJECT_COIN);
+	//auto coinModel6 = Model(FILE_OBJECT_COIN);
+	//auto coinModel7 = Model(FILE_OBJECT_COIN);
+	//auto coinModel8 = Model(FILE_OBJECT_COIN);
+
 	auto hpPanelModel = Model(FILE_OBJECT_HP);
 	auto scorePanelModel = Model(FILE_OBJECT_SCORE);
 	auto hungerPanelModel = Model(FILE_OBJECT_HUNGER);
-	auto coinModel = Model(FILE_OBJECT_COIN);
 		
 	// Set Unique Id to Models
 	// ----------------------
@@ -164,7 +175,16 @@ int main()
 	// -----------------------------------
 	cyborgModel.ScaleModel(scaleCyborg);
 	soldierModel.ScaleModel(scaleSoldier);
+	
 	coinModel.ScaleModel(scaleCoin);
+	coinModel2.ScaleModel(scaleCoin);
+	coinModel3.ScaleModel(scaleCoin);
+	coinModel4.ScaleModel(scaleCoin);
+	//coinModel5.ScaleModel(scaleCoin);
+	//coinModel6.ScaleModel(scaleCoin);
+	//coinModel7.ScaleModel(scaleCoin);
+	//coinModel8.ScaleModel(scaleCoin);
+
 	hpPanelModel.ScaleModel(scaleHpPanel);
 	scorePanelModel.ScaleModel(scaleScore);
 	hungerPanelModel.ScaleModel(HungerScore);
@@ -179,11 +199,21 @@ int main()
 
 	// Add models to an list to ease cycling
 	// --------------------------------------
-	modelList.push_back(cyborgModel);
-	modelList.push_back(soldierModel);
-	modelList.push_back(coinModel);
+	modelList.push_back(&cyborgModel);
+	modelList.push_back(&soldierModel);
+	modelList.push_back(&coinModel);
 
-	
+	Model coinList[4] = {
+		coinModel,
+		coinModel2,
+		coinModel3,
+		coinModel4,
+		//coinModel5,
+		//coinModel6,
+		//coinModel7,
+		//coinModel8
+	};
+
 	// Set object movement types. Default is Normal
 	// ---------------------------------------------
 	soldierModel.setMovementType(MovementType::Random);
@@ -222,8 +252,13 @@ int main()
 
 		// don't forget to enable shader before setting uniforms
 		ResourceManager::GetShader(KEY_SHADER_OBJECT).use();
-
-		cyborgModel.doCollusion(coinModel);
+		
+		for (int i = 0; i < 4; i++)
+		{
+			// TODO IMPLEMENT THIS
+			cyborgModel.doCollusionCoin(coinList[i]);
+		}
+		cyborgModel.doCollusion(soldierModel);
 
 		// view/projection transformations
 		glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -232,30 +267,37 @@ int main()
 		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("view", view);
 		
 		processInput(window, cyborgModel);
+		
 		processInputForObject(window, cyborgModel);
 
 		//// render the loaded model
 		//for (int i =0; i< modelList.size(); i++)
 		//{
-		//	ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", modelList[i].getModelMatrix());
-		//	modelList[i].update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+		//	ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", modelList[i]->getModelMatrix());
+		//	modelList[i]->update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		//}
 
-		if (checkDistance(cyborgModel))
+		//if (checkDistance(cyborgModel))
 		{
 			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", cyborgModel.getModelMatrix());
 			cyborgModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		}
-		if (checkDistance(soldierModel))
+		//if (checkDistance(soldierModel))
 		{
 			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", soldierModel.getModelMatrix());
 			soldierModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		}
-		if(checkDistance(coinModel))
+		//if (checkDistance(coinModel))
 		{
 			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", coinModel.getModelMatrix());
 			coinModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		}
+		for (int i = 0; i < 4; i++)
+		{
+			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", coinList[i].getModelMatrix());
+			coinList[i].update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+		}
+
 
 		////////////////////////////////////////////////////-----------------------------
 		if (nbFrames < 1000 && VAR_TOTAL_LIVES!=0) 
@@ -426,45 +468,27 @@ void processInput(GLFWwindow *window, Model &model)
 	}
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 	{
-		camera.ProcessKeyboard(Directions::FORWARD, deltaTime);
-		//camView = glm::translate(camView, glm::vec3(0.0f, 0.0f, SPEED_LIMIT));
-		if (isGodMod)
-			model.tempMove(glm::vec3(SPEED_LIMIT, 0.0f, 0.0f));
+		moveTogether(Directions::FORWARD, model);
 	}
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 	{
-		camera.ProcessKeyboard(Directions::BACKWARD, deltaTime);
-		//camView = glm::translate(camView, glm::vec3(0.0f, 0.0f, -SPEED_LIMIT));
-		if (isGodMod)
-			model.tempMove(glm::vec3(-SPEED_LIMIT, 0.0f, 0.0f));
+		moveTogether(Directions::BACKWARD, model);
 	}
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 	{
-		camera.ProcessKeyboard(Directions::LEFT, deltaTime);
-		//camView = glm::translate(camView, glm::vec3(SPEED_LIMIT, 0.0f, 0.0f));
-		if (isGodMod)
-			model.tempMove(glm::vec3(0.0f, 0.0f, SPEED_LIMIT));
+		moveTogether(Directions::LEFT, model);
 	}
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 	{
-		camera.ProcessKeyboard(Directions::RIGHT, deltaTime);
-		//camView = glm::translate(camView, glm::vec3(-SPEED_LIMIT, 0.0f, 0.0f));
-		if (isGodMod)
-			model.tempMove(glm::vec3(0.0f, 0.0f, -SPEED_LIMIT));
+		moveTogether(Directions::RIGHT, model);
 	}
 	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
 	{
-		camera.ProcessKeyboard(Directions::UP, deltaTime);
-		//camView = glm::translate(camView, glm::vec3(0.0f, SPEED_LIMIT, 0.0f));
-		if (isGodMod)
-			model.tempMove(glm::vec3(0.0f, SPEED_LIMIT, 0.0f));
+		moveTogether(Directions::UP, model);
 	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 	{
-		camera.ProcessKeyboard(Directions::DOWN, deltaTime);
-		//camView = glm::translate(camView, glm::vec3(0.0f, -SPEED_LIMIT, 0.0f));
-		if (isGodMod)
-			model.tempMove(glm::vec3(0.0f, -SPEED_LIMIT, 0.0f));
+		moveTogether(Directions::DOWN, model);
 	}
 	if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS)
 	{
@@ -474,6 +498,13 @@ void processInput(GLFWwindow *window, Model &model)
 	{
 		isGodMod = false;
 	}
+}
+
+void moveTogether(Directions dir, Model& model)
+{
+	camera.ProcessKeyboard(dir, deltaTime);
+	//if (isGodMod)
+	//	model.tempMove(dir);
 }
 
 void processInputForObject(GLFWwindow * window, Model &model)

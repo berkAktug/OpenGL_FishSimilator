@@ -127,11 +127,11 @@ struct BoxAABB
 	}
 };
 
-
 class PhysicEngine {
 
 public:
-	PhysicEngine() : deltaTime(0.0), isMoveable(true), scaleFactor(), vel(VECTOR_ZERO), acc(VECTOR_ZERO)
+	PhysicEngine() : deltaTime(0.0), isMoveable(true), 
+		scaleFactor(glm::vec3(1.0f)), vel(VECTOR_ZERO), acc(VECTOR_ZERO)
 	{}
 
 	void setVelocity(glm::vec3 vel);
@@ -140,7 +140,9 @@ public:
 	void setAcceleration(glm::vec3 acc);
 	glm::vec3 getAcceleration();
 	void accelerateTowards(glm::vec3 acc);
-
+	
+	glm::vec3 getCenter();
+	void setCenter(glm::vec3 center);
 
 	void setScaleFactor(glm::vec3 scale);
 	glm::vec3 getScaleFactor();
@@ -150,8 +152,10 @@ public:
 
 	void applyPhysics(float deltaTime);
 
-	void applyMotion(SphereAABB &cage);
-	void applyMotion(BoxAABB &cage);
+	void applyMotion(glm::vec3 vec);
+
+	//void applyMotion(SphereAABB &cage);
+	//void applyMotion(BoxAABB &cage);
 	
 	bool isMoving();
 	bool canMove();
@@ -161,6 +165,7 @@ public:
 	void setMovementType(MovementType movementType);
 
 private:
+	glm::vec3 position;
 
 	/* Time since last frame */
 	float deltaTime;
@@ -220,28 +225,33 @@ void PhysicEngine::applyPhysics(float deltaTime)
 	_adjustVelocity();
 }
 
-void PhysicEngine::applyMotion(SphereAABB &cage)
+void PhysicEngine::applyMotion(glm::vec3 vec)
 {
-	if (canMove())
-	{
-		cage.c.x += vel.x;
-		cage.c.y += vel.y;
-		cage.c.z += vel.z;
-	}
+	position += vec;
 }
 
-void PhysicEngine::applyMotion(BoxAABB &cage)
-{
-	if (canMove())
-	{
-		cage.max.x += vel.x;
-		cage.min.x += vel.x;
-		cage.max.y += vel.y;
-		cage.min.y += vel.y;
-		cage.max.z += vel.z;
-		cage.min.z += vel.z;
-	}
-}
+//void PhysicEngine::applyMotion(SphereAABB &cage)
+//{
+//	if (canMove())
+//	{
+//		cage.c.x += vel.x;
+//		cage.c.y += vel.y;
+//		cage.c.z += vel.z;
+//	}
+//}
+//
+//void PhysicEngine::applyMotion(BoxAABB &cage)
+//{
+//	if (canMove())
+//	{
+//		cage.max.x += vel.x;
+//		cage.min.x += vel.x;
+//		cage.max.y += vel.y;
+//		cage.min.y += vel.y;
+//		cage.max.z += vel.z;
+//		cage.min.z += vel.z;
+//	}
+//}
 
 void PhysicEngine::setAcceleration(glm::vec3 acc)
 {
@@ -256,6 +266,16 @@ glm::vec3 PhysicEngine::getAcceleration()
 void PhysicEngine::accelerateTowards(glm::vec3 acc)
 {
 	acc += acc;
+}
+
+glm::vec3 PhysicEngine::getCenter()
+{
+	return position;
+}
+
+void PhysicEngine::setCenter(glm::vec3 center)
+{
+	position = center;
 }
 
 void PhysicEngine::setScaleFactor(glm::vec3 scale)
