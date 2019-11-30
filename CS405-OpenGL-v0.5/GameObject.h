@@ -41,6 +41,7 @@ private:
 	int _lastdirection;
 	int _frameCounter;
 	float _deltaTime;
+	float _lastTime;
 
 	glm::vec3 _scaleFactor;
 
@@ -97,6 +98,11 @@ GameObject::~GameObject()
 
 void GameObject::Update(Shader shader)
 {
+	float currentFrame = glfwGetTime();
+	this->_deltaTime = currentFrame - this->_lastTime;
+	this->_lastTime = currentFrame;
+
+
 	_Move();
 
 	_model->Draw(shader);
@@ -247,7 +253,7 @@ void GameObject::_MoveTo(glm::vec3 vec)
 {
 	//auto scale_factor = _physics->GetScaleFactor();
 	_physics->MoveTo(vec * _scaleFactor);
-	_model->MoveTo(vec* _scaleFactor);
+	_model->MoveTo(vec * _scaleFactor);
 }
 
 glm::vec3 GameObject::_GetUpDownDirectionVector()

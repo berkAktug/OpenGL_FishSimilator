@@ -248,7 +248,7 @@ int main()
 		// don't forget to enable shader before setting uniforms
 		ResourceManager::GetShader(KEY_SHADER_OBJECT).use();
 		
-		for (int i = 0; i < 4; i++)
+		for (int i = 0; i < 8; i++)
 		{
 			// TODO IMPLEMENT THIS
 			//cyborgModel.doCollusion(coinList[i]);
@@ -262,29 +262,33 @@ int main()
 		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("view", view);
 		
 		processInput(window, cyborgModel);
-		
+		//
 		processInputForObject(window, cyborgModel);
 
+		//cyborgModel.AccelerateTowards(Directions::FORWARD);
+
+
 		//// render the loaded _model
-		//for (int i =0; i< objectList.size(); i++)
-		//{
-		//	ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("_model", objectList[i]->GetModelMatrix());
-		//	objectList[i]->Update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
-		//}
+		for (int i =0; i< objectList.size(); i++)
+		{
+			//ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("_model", objectList[i]->GetModelMatrix());
+			//objectList[i]->Update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			objectList[i]->Update(KEY_SHADER_OBJECT);
+		}
 
 		//if (checkDistance(cyborgModel))
-		{
-			cyborgModel.Update(KEY_SHADER_OBJECT);
-		}
+		//{
+			//cyborgModel.Update(KEY_SHADER_OBJECT);
+		//}
 		//if (checkDistance(soldierModel))
-		{
-			soldierModel.Update(KEY_SHADER_OBJECT);
-		}
+		//{
+			//soldierModel.Update(KEY_SHADER_OBJECT);
+		//}
 		//if (checkDistance(coinModel))
-		{
-			coinModel.Update(KEY_SHADER_OBJECT);
-		}
-		for (int i = 0; i < 4; i++)
+		//{
+			//coinModel.Update(KEY_SHADER_OBJECT);
+		//}
+		for (int i = 0; i < 8; i++)
 		{
 			coinList[i]->Update(KEY_SHADER_OBJECT);
 		}
@@ -498,36 +502,36 @@ void moveTogether(Directions dir, GameObject &model)
 	//	_model.tempMove(dir);
 }
 
-void processInputForObject(GLFWwindow * window, GameObject &model)
+void processInputForObject(GLFWwindow * window, GameObject &object)
 {
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
 	{
-		model.AccelerateTowards(Directions::FORWARD);
+		object.AccelerateTowards(Directions::FORWARD);
 	}
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
 	{
-		model.AccelerateTowards(Directions::BACKWARD);
+		object.AccelerateTowards(Directions::BACKWARD);
 	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
 	{
-		model.AccelerateTowards(Directions::LEFT);
+		object.AccelerateTowards(Directions::LEFT);
 	}
 	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
 	{
-		model.AccelerateTowards(Directions::RIGHT);
+		object.AccelerateTowards(Directions::RIGHT);
 	}
 	if (glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
 	{
-		model.AccelerateTowards(Directions::UP);
+		object.AccelerateTowards(Directions::UP);
 	}
 	if (glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS)
 	{
-		model.AccelerateTowards(Directions::DOWN);
+		object.AccelerateTowards(Directions::DOWN);
 	}
 	if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
 	{
 		std::cout << std::endl;
-		model.Print();
+		object.Print();
 	}
 	if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS)
 	{

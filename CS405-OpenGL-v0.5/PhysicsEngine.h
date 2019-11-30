@@ -69,6 +69,8 @@ public:
 		_vel(VECTOR_ZERO) //, _scaleFactor(glm::vec3(1.0f))
 	{
 		_box = BoxAABB(max, min);
+
+		_SetCenter(max, min);
 		//_box.max = max;
 		//_box.min = min;
 	}
@@ -80,10 +82,6 @@ public:
 	void AccelerateTowards(glm::vec3 acc);
 
 	glm::vec3 GetCenter();
-	void SetCenter(glm::vec3 center);
-
-	//void SetScaleFactor(glm::vec3 scale);
-	//glm::vec3 GetScaleFactor();
 
 	void StopMotion();
 	void ReverseMotion();
@@ -91,19 +89,13 @@ public:
 	void Apply(float delta_time);
 
 	bool IsMoving();
-
 	bool CanMove();
-
 	void SetMoveablity(bool isMoveable);
 
 	void Scale(glm::vec3 scale);
 
-	//void SetupCollusionBox(glm::vec3 vector);
-
 	void Print();
 
-	void PlaceTo(glm::vec3 pos);
-	
 	void Move(glm::vec3 scale_factor);
 
 	void MoveTo(glm::vec3 point);
@@ -117,20 +109,21 @@ private:
 	/* Can object Move? */
 	bool _isMoveable;
 
-	///* Scale factor */
-	//glm::vec3 _scaleFactor;
-
 	/* Velocity */
 	glm::vec3 _vel;
 
 	/* Acceleration */
 	glm::vec3 _acc;
 
+	void _SetCenter(glm::vec3 center);
+	void _SetCenter(Point max, Point min);
+
+	void _CheckLimitAcceleration();
 	void _ApplyFriction();
-	void _checkBoxBoundry();
-	void _solveSurfaceCollusion();
-	bool _checkIsInGameField();
-	void _solveCollusionBox(PhysicEngine & other);
+	void _CheckBoxBoundry();
+	void _SolveSurfaceCollusion();
+	bool _CheckIsInGameField();
+	void _SolveCollusionBox(PhysicEngine & other);
 };
 
 glm::vec3 PhysicEngine::GetVelocity()
@@ -140,17 +133,17 @@ glm::vec3 PhysicEngine::GetVelocity()
 
 void PhysicEngine::DoCollusion(PhysicEngine *other)
 {
-	if (!_checkIsInGameField())
+	if (!_CheckIsInGameField())
 	{
 		// lhs object is not within game field.
 		std::cout << "Object1 is not in gamefield. Returning them to the mother base. Over." << std::endl;
-		_solveSurfaceCollusion();
+		_SolveSurfaceCollusion();
 	}
-	if (!other->_checkIsInGameField())
+	if (!other->_CheckIsInGameField())
 	{
 		// rhs object is not within game field.
 		std::cout << "Object2 is not in gamefield. Returning them to the mother base. Over." << std::endl;
-		_solveSurfaceCollusion();
+		_SolveSurfaceCollusion();
 	}
 
 
@@ -160,7 +153,7 @@ void PhysicEngine::DoCollusion(PhysicEngine *other)
 		_box.Print();
 		other->_box.Print();
 
-		_solveCollusionBox(*other);
+		_SolveCollusionBox(*other);
 	}
 }
 
@@ -192,6 +185,8 @@ void PhysicEngine::Apply(float delta_time)
 
 	_vel += _acc * delta_time;
 
+	_CheckLimitAcceleration();
+
 	_ApplyFriction();
 }
 
@@ -200,7 +195,7 @@ glm::vec3 PhysicEngine::GetCenter()
 	return _box.center;
 }
 
-void PhysicEngine::SetCenter(glm::vec3 center)
+void PhysicEngine::_SetCenter(glm::vec3 center)
 {
 	auto diff_x = (_box.max.x - _box.min.x)/2;
 	auto diff_y = (_box.max.x - _box.min.y)/2;
@@ -218,15 +213,14 @@ void PhysicEngine::SetCenter(glm::vec3 center)
 	_box.max.z = _box.center.z - diff_z;
 }
 
-//void PhysicEngine::SetScaleFactor(glm::vec3 scale)
-//{
-//	_scaleFactor = scale;
-//}
-//
-//glm::vec3 PhysicEngine::GetScaleFactor()
-//{
-//	return _scaleFactor;
-//}
+void PhysicEngine::_SetCenter(Point max, Point min)
+{
+	auto center_x = (_box.max.x + _box.min.x) / 2;
+	auto center_y = (_box.max.x + _box.min.y) / 2;
+	auto center_z = (_box.max.x + _box.min.y) / 2;
+
+	_box.center = glm::vec3(center_x, center_y, center_z);
+}
 
 bool PhysicEngine::IsMoving()
 {
@@ -262,12 +256,12 @@ void PhysicEngine::Scale(glm::vec3 scale)
 	_box.max.y += diff_height / 2;
 	_box.min.y -= diff_height / 2;
 
-	_checkBoxBoundry();
+	_CheckBoxBoundry();
 }
 
 void PhysicEngine::MoveTo(glm::vec3 point)
 {
-	_checkBoxBoundry();
+	_CheckBoxBoundry();
 
 	double dist_x = _box.max.x - _box.min.x;
 	_box.max.x = point.x + dist_x / 2;
@@ -280,6 +274,8 @@ void PhysicEngine::MoveTo(glm::vec3 point)
 	double dist_z = _box.max.z - _box.min.z;
 	_box.max.z = point.z + dist_z / 2;
 	_box.min.z = point.z - dist_z / 2;
+
+	_SetCenter(_box.max, _box.min);
 }
 
 void PhysicEngine::Move(glm::vec3 scale_factor)
@@ -287,41 +283,57 @@ void PhysicEngine::Move(glm::vec3 scale_factor)
 	_box.move(this->_vel * scale_factor);
 }
 
-//void PhysicEngine::SetupCollusionBox(glm::vec3 vector)
-//{
-//	if (_box.min.x > vector.x) { _box.min.x = vector.x; }
-//	if (_box.min.y > vector.y) { _box.min.y = vector.x; }
-//	if (_box.min.z > vector.z) { _box.min.z = vector.z; }
-//
-//	if (_box.max.x < vector.x) { _box.max.x = vector.x; }
-//	if (_box.max.y < vector.y) { _box.max.y = vector.x; }
-//	if (_box.max.z < vector.z) { _box.max.z = vector.z; }
-//}
-
 void PhysicEngine::Print()
 {
 	_box.Print();
 }
 
-void PhysicEngine::PlaceTo(glm::vec3 pos)
+void PhysicEngine::_CheckLimitAcceleration()
 {
-	MoveTo(pos);
+	if ((_acc.x > HIGHEST_ACCELERATION && _acc.x >= 0))
+	{
+		_acc.x = HIGHEST_ACCELERATION;
+	}
+	else if((_acc.x < -HIGHEST_ACCELERATION && _acc.x <= 0))
+	{
+		_acc.x = -HIGHEST_ACCELERATION;
+	}
+
+	if ((_acc.y > HIGHEST_ACCELERATION && _acc.y >= 0))
+	{
+		_acc.y = HIGHEST_ACCELERATION;
+	}
+	else if((_acc.y < -HIGHEST_ACCELERATION && _acc.y <= 0))
+	{
+		_acc.y = -HIGHEST_ACCELERATION;
+	}
+	
+	if ((_acc.z > HIGHEST_ACCELERATION && _acc.z >= 0))
+	{
+		_acc.z = HIGHEST_ACCELERATION;
+	}
+	else if ((_acc.z < -HIGHEST_ACCELERATION && _acc.z <= 0))
+	{
+		_acc.z = -HIGHEST_ACCELERATION;
+	}
 }
 
 void PhysicEngine::_ApplyFriction()
 {
 	// simulate friction
-	_acc *= 0.75;
+	_acc *= 0.90f;
 	if (((_acc.x < LOWEST_ACCELERATION && _acc.x >= 0) || (_acc.x > -LOWEST_ACCELERATION && _acc.x <= 0)) &&
 		((_acc.y < LOWEST_ACCELERATION && _acc.y >= 0) || (_acc.y > -LOWEST_ACCELERATION && _acc.y <= 0)) &&
 		((_acc.z < LOWEST_ACCELERATION && _acc.z >= 0) || (_acc.z > -LOWEST_ACCELERATION && _acc.z <= 0)))
 	{
 		_acc = VECTOR_ZERO;
+		// Temporary solution.
+		_vel = VECTOR_ZERO;
 	}
 }
 
 
-void PhysicEngine::_checkBoxBoundry()
+void PhysicEngine::_CheckBoxBoundry()
 {
 	if (_box.max.x < _box.min.x)
 	{
@@ -337,7 +349,7 @@ void PhysicEngine::_checkBoxBoundry()
 	}
 }
 
-void PhysicEngine::_solveSurfaceCollusion()
+void PhysicEngine::_SolveSurfaceCollusion()
 {
 	if (!gameBoundry.isPointInsideAABB(_box.max))
 	{
@@ -357,7 +369,7 @@ void PhysicEngine::_solveSurfaceCollusion()
 	}
 }
 
-bool PhysicEngine::_checkIsInGameField()
+bool PhysicEngine::_CheckIsInGameField()
 {
 	if (gameBoundry.isPointInsideAABB(_box.max) && gameBoundry.isPointInsideAABB(_box.min))
 	{
@@ -366,7 +378,7 @@ bool PhysicEngine::_checkIsInGameField()
 	return false;
 }
 
-void PhysicEngine::_solveCollusionBox(PhysicEngine &other)
+void PhysicEngine::_SolveCollusionBox(PhysicEngine &other)
 {
 	if (this->IsMoving() && other.IsMoving())
 	{
