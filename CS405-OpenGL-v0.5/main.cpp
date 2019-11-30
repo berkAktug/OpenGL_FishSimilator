@@ -9,7 +9,8 @@
 #include "ResourceManager.h"
 
 #include "camera.h"
-#include "model.h"
+#include "GameObject.h"
+//#include "model.h"
 
 #include <iostream>
 
@@ -19,13 +20,15 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window, Model &model);
+
+void processInput(GLFWwindow *window, GameObject &model);
+void processInputForObject(GLFWwindow *window, GameObject &model);
+
 unsigned int loadTexture(const char *path);
 unsigned int loadCubemap(std::vector<std::string> faces);
 
-void moveTogether(Directions dir, Model &model);
+void moveTogether(Directions dir, GameObject &model);
 
-void processInputForObject(GLFWwindow *window, Model &model);
 unsigned int skyboxInit();
 
 
@@ -39,32 +42,25 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-GLfloat box_vertices[] = {
-	-10.0f , -10.0f, 0.0f, 0.0f, 1.0f,
-	-10.0f , 10.0f, 0.0f, 0.0f, 0.0f,
-   10.0f , 10.0f, 0.0f, 1.0f, 0.0f,
-   10.0f , -10.0f, 0.0f, 1.0f, 1.0f
-};
-
 auto distRange = glm::vec3(5.0f);
 
 bool isGodMod = false;
 
-bool checkDistance(Model& model)
-{
-	double dist = std::sqrt( pow(camera.getPosition().x - model.getPosition().x,2)
-						   + pow(camera.getPosition().y - model.getPosition().y,2)
-						   + pow(camera.getPosition().z - model.getPosition().z,2));
+//bool checkDistance(Model& model)
+//{
+//	double dist = std::sqrt( pow(camera.getPosition().x - model.getPosition().x,2)
+//						   + pow(camera.getPosition().y - model.getPosition().y,2)
+//						   + pow(camera.getPosition().z - model.getPosition().z,2));
+//
+//	//std::cout << dist << std::endl;
+//	if (dist < 25.0)
+//	{
+//		return true;
+//	}
+//	return false;
+//}
 
-	//std::cout << dist << std::endl;
-	if (dist < 25.0)
-	{
-		return true;
-	}
-	return false;
-}
-
-std::vector<Model*> modelList;
+std::vector<GameObject*> objectList;
 
 // PFTT
 unsigned int skyboxVAO, skyboxVBO;
@@ -132,27 +128,27 @@ int main()
 
 	// Create Game models
 	// ---------------------------------------
-	auto cyborgModel = Model(FILE_OBJECT_CYBORG);
-	auto soldierModel = Model(FILE_OBJECT_NANOSUIT);
+	auto cyborgModel = GameObject(FILE_OBJECT_CYBORG, ObjectType::Player);
+	auto soldierModel = GameObject(FILE_OBJECT_NANOSUIT, ObjectType::Enemy);
 
-	auto coinModel = Model(FILE_OBJECT_COIN);
-	auto coinModel2 = Model(FILE_OBJECT_COIN);
-	auto coinModel3 = Model(FILE_OBJECT_COIN);
-	auto coinModel4 = Model(FILE_OBJECT_COIN);
-	//auto coinModel5 = Model(FILE_OBJECT_COIN);
-	//auto coinModel6 = Model(FILE_OBJECT_COIN);
-	//auto coinModel7 = Model(FILE_OBJECT_COIN);
-	//auto coinModel8 = Model(FILE_OBJECT_COIN);
+	auto coinModel  = GameObject(FILE_OBJECT_COIN, ObjectType::Coin);
+	auto coinModel2 = GameObject(FILE_OBJECT_COIN, ObjectType::Coin);
+	auto coinModel3 = GameObject(FILE_OBJECT_COIN, ObjectType::Coin);
+	auto coinModel4 = GameObject(FILE_OBJECT_COIN, ObjectType::Coin);
+	auto coinModel5 = GameObject(FILE_OBJECT_COIN, ObjectType::Coin);
+	auto coinModel6 = GameObject(FILE_OBJECT_COIN, ObjectType::Coin);
+	auto coinModel7 = GameObject(FILE_OBJECT_COIN, ObjectType::Coin);
+	auto coinModel8 = GameObject(FILE_OBJECT_COIN, ObjectType::Coin);
 
-	auto hpPanelModel = Model(FILE_OBJECT_HP);
-	auto scorePanelModel = Model(FILE_OBJECT_SCORE);
-	auto hungerPanelModel = Model(FILE_OBJECT_HUNGER);
+	auto hpPanelModel = GameObject(FILE_OBJECT_HP, ObjectType::OnScreenPanel);
+	auto scorePanelModel = GameObject(FILE_OBJECT_SCORE, ObjectType::OnScreenPanel);
+	auto hungerPanelModel = GameObject(FILE_OBJECT_HUNGER, ObjectType::OnScreenPanel);
 		
 	// Set Unique Id to Models
 	// ----------------------
-	cyborgModel.setID(0);
-	soldierModel.setID(1);
-	coinModel.setID(3);
+	cyborgModel.SetID(0);
+	soldierModel.SetID(1);
+	coinModel.SetID(3);
 	   
 	// Scale models 
 	// -------------------
@@ -167,56 +163,55 @@ int main()
 	
 	// Debug Printer
 	// -------------------------
-	//cyborgModel.printPosition();
-	//soldierModel.printPosition();
-	coinModel.printPosition();
+	cyborgModel.Print();
+	soldierModel.Print();
+	coinModel.Print();
 
 	// Apply Scale operation to models
 	// -----------------------------------
-	cyborgModel.ScaleModel(scaleCyborg);
-	soldierModel.ScaleModel(scaleSoldier);
+	cyborgModel.ScaleObject(scaleCyborg);
+	soldierModel.ScaleObject(scaleSoldier);
 	
-	coinModel.ScaleModel(scaleCoin);
-	coinModel2.ScaleModel(scaleCoin);
-	coinModel3.ScaleModel(scaleCoin);
-	coinModel4.ScaleModel(scaleCoin);
-	//coinModel5.ScaleModel(scaleCoin);
-	//coinModel6.ScaleModel(scaleCoin);
-	//coinModel7.ScaleModel(scaleCoin);
-	//coinModel8.ScaleModel(scaleCoin);
+	coinModel.ScaleObject(scaleCoin);
+	coinModel2.ScaleObject(scaleCoin);
+	coinModel3.ScaleObject(scaleCoin);
+	coinModel4.ScaleObject(scaleCoin);
+	coinModel5.ScaleObject(scaleCoin);
+	coinModel6.ScaleObject(scaleCoin);
+	coinModel7.ScaleObject(scaleCoin);
+	coinModel8.ScaleObject(scaleCoin);
 
-	hpPanelModel.ScaleModel(scaleHpPanel);
-	scorePanelModel.ScaleModel(scaleScore);
-	hungerPanelModel.ScaleModel(HungerScore);
+	hpPanelModel.ScaleObject(scaleHpPanel);
+	scorePanelModel.ScaleObject(scaleScore);
+	hungerPanelModel.ScaleObject(HungerScore);
 
 
 	// Debug Printer
 	// -----------------------------
-	cyborgModel.printPosition();
-	//soldierModel.printPosition();
-	//coinModel.printPosition();
+	cyborgModel.Print();
+	soldierModel.Print();
+	coinModel.Print();
 
 
 	// Add models to an list to ease cycling
 	// --------------------------------------
-	modelList.push_back(&cyborgModel);
-	modelList.push_back(&soldierModel);
-	modelList.push_back(&coinModel);
+	objectList.push_back(&cyborgModel);
+	objectList.push_back(&soldierModel);
+	objectList.push_back(&coinModel);
 
-	Model coinList[4] = {
-		coinModel,
-		coinModel2,
-		coinModel3,
-		coinModel4,
-		//coinModel5,
-		//coinModel6,
-		//coinModel7,
-		//coinModel8
+	GameObject* coinList[8] = {
+		&coinModel,
+		&coinModel2,
+		&coinModel3,
+		&coinModel4,
+		&coinModel5,
+		&coinModel6,
+		&coinModel7,
+		&coinModel8
 	};
 
 	// Set object movement types. Default is Normal
 	// ---------------------------------------------
-	soldierModel.setMovementType(MovementType::Random);
 
 	double lastTime = glfwGetTime();
 	int nbFrames = 0;
@@ -256,9 +251,9 @@ int main()
 		for (int i = 0; i < 4; i++)
 		{
 			// TODO IMPLEMENT THIS
-			cyborgModel.doCollusionCoin(coinList[i]);
+			//cyborgModel.doCollusion(coinList[i]);
 		}
-		cyborgModel.doCollusion(soldierModel);
+		//cyborgModel.doCollusion(&soldierModel);
 
 		// view/projection transformations
 		glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -270,37 +265,33 @@ int main()
 		
 		processInputForObject(window, cyborgModel);
 
-		//// render the loaded model
-		//for (int i =0; i< modelList.size(); i++)
+		//// render the loaded _model
+		//for (int i =0; i< objectList.size(); i++)
 		//{
-		//	ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", modelList[i]->getModelMatrix());
-		//	modelList[i]->update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+		//	ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("_model", objectList[i]->GetModelMatrix());
+		//	objectList[i]->Update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		//}
 
 		//if (checkDistance(cyborgModel))
 		{
-			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", cyborgModel.getModelMatrix());
-			cyborgModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			cyborgModel.Update(KEY_SHADER_OBJECT);
 		}
 		//if (checkDistance(soldierModel))
 		{
-			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", soldierModel.getModelMatrix());
-			soldierModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			soldierModel.Update(KEY_SHADER_OBJECT);
 		}
 		//if (checkDistance(coinModel))
 		{
-			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", coinModel.getModelMatrix());
-			coinModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			coinModel.Update(KEY_SHADER_OBJECT);
 		}
 		for (int i = 0; i < 4; i++)
 		{
-			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", coinList[i].getModelMatrix());
-			coinList[i].update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			coinList[i]->Update(KEY_SHADER_OBJECT);
 		}
 
 
 		////////////////////////////////////////////////////-----------------------------
-		if (nbFrames < 1000 && VAR_TOTAL_LIVES!=0) 
+		if (nbFrames < 1000 && TOTAL_LIVES!=0) 
 		{
 			// view/projection transformations
 			glm::mat4 ORTHOprojection = glm::orthoLH(-10, 10, -10, 10, -10, 10);
@@ -310,16 +301,16 @@ int main()
 
 			glDepthFunc(GL_ALWAYS);
 			
-			for (float i = 0; i < VAR_TOTAL_LIVES; i++) {
+			for (float i = 0; i < TOTAL_LIVES; i++) {
 				ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", { 1.0f,0.0f,0.0f,0.0f,//x
 																				 0.0f,1.0f,0.0f,0.0f,//y
 																				 0.0f,0.0f,0.0f,0.0f,//z
 																				 -7.50f,7.50f-i,0.0f,8.0f });
 
-				hpPanelModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+				hpPanelModel.Update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 			}
 
-			int tempscore = VAR_TOTAL_SCORE;
+			int tempscore = TOTAL_SCORE;
 			float i=0;
 			while(  5 <= tempscore ) {
 
@@ -329,7 +320,7 @@ int main()
 																				 6.0f - i,6.10f ,0.0f,6.5f });
 				i++;
 				tempscore -= 5;
-				scorePanelModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+				scorePanelModel.Update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 			}
 			float j = 0;
 			while (0 < tempscore) {
@@ -341,7 +332,7 @@ int main()
 				
 				j++;
 				tempscore -= 1;
-				scorePanelModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+				scorePanelModel.Update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 			}
 			
 			if (VAR_HUNGER < 10) {
@@ -350,15 +341,15 @@ int main()
 																				 0.0f,0.0f,0.0f,0.0f,//z
 																				 0.0f,-7.50f,0.0f,8.0f });
 				VAR_HUNGER = VAR_HUNGER +( 0.000001*SCR_WIDTH);
-				hungerPanelModel.update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+				hungerPanelModel.Update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 			}
-			else if( VAR_TOTAL_LIVES > 0)
+			else if( TOTAL_LIVES > 0)
 			{
 				VAR_HUNGER = 0;
-				VAR_TOTAL_LIVES--;
+				TOTAL_LIVES--;
 			}
 		}
-			   		 	  
+
 		// draw skybox as last
 		glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
 		ResourceManager::GetShader(KEY_SHADER_SKYBOX).use();
@@ -460,7 +451,7 @@ unsigned int skyboxInit()
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window, Model &model)
+void processInput(GLFWwindow *window, GameObject &model)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 	{
@@ -500,43 +491,43 @@ void processInput(GLFWwindow *window, Model &model)
 	}
 }
 
-void moveTogether(Directions dir, Model& model)
+void moveTogether(Directions dir, GameObject &model)
 {
 	camera.ProcessKeyboard(dir, deltaTime);
 	//if (isGodMod)
-	//	model.tempMove(dir);
+	//	_model.tempMove(dir);
 }
 
-void processInputForObject(GLFWwindow * window, Model &model)
+void processInputForObject(GLFWwindow * window, GameObject &model)
 {
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
 	{
-		model.turnTowards(Directions::FORWARD);
+		model.AccelerateTowards(Directions::FORWARD);
 	}
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
 	{
-		model.turnTowards(Directions::BACKWARD);
+		model.AccelerateTowards(Directions::BACKWARD);
 	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
 	{
-		model.turnTowards(Directions::LEFT);
+		model.AccelerateTowards(Directions::LEFT);
 	}
 	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
 	{
-		model.turnTowards(Directions::RIGHT);
+		model.AccelerateTowards(Directions::RIGHT);
 	}
 	if (glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
 	{
-		model.turnTowards(Directions::UP);
+		model.AccelerateTowards(Directions::UP);
 	}
 	if (glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS)
 	{
-		model.turnTowards(Directions::DOWN);
+		model.AccelerateTowards(Directions::DOWN);
 	}
 	if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
 	{
 		std::cout << std::endl;
-		model.printPosition();
+		model.Print();
 	}
 	if (glfwGetKey(window, GLFW_KEY_0) == GLFW_PRESS)
 	{

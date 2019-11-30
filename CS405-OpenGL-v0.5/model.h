@@ -13,7 +13,7 @@
 #include "mesh.h"
 #include "shader.h"
 
-#include "Object.h"
+//#include "Object.h"
 
 #include "Enums.h"
 
@@ -36,182 +36,94 @@ public:
 	bool gammaCorrection;
 
 	/*  Functions   */
-	// constructor, expects a filepath to a 3D model.
-	Model(std::string const &path, bool gamma = false) : gammaCorrection(gamma)//, cage(Object())
+	// constructor, expects a filepath to a 3D _model.
+	Model(std::string const &path, bool gamma = false) : gammaCorrection(gamma)//, _cage(Object())
 	{
-		_loadModel(path);
-
-		cage = new Object(max,min);
-
-		cage->init();
-
-		//cage->setupCenter();
-		ID = rand() % 1000;
-
-		// Set model to random place;
-		cage->placeRandomly();
+		_LoadModel(path);
+		_modelMatrix = glm::mat4(1.0f);
 	}
 
-	void setID(int id);
-
-	void addTexture(std::string path, std::string type);
-
-	void printModel();
-
-	void printPosition();
-
-	void doCollusion(Model &other);
-
-	void doCollusionCoin(Model &other);
-
-	MovementType getRandomMovmeent();
-
-	void setMovementType(MovementType movementType);
+	void Print();
 
 	void ScaleModel(glm::vec3 scaleVector);
 
-	void update(Shader shader);
+	void Draw(Shader shader);
 
-	void turnTowards(Directions dir);
+	// new
+	void Move(glm::vec3 vec);
+	void MoveTo(glm::vec3 vec);
 
-	glm::mat4 getModelMatrix();
+	glm::mat4 GetModelMatrix();
 
-	glm::vec3 getPosition();
-
-	void setPosition(glm::vec3 pos);
+	Point GetMax();
+	Point GetMin();
 
 private:
 	/*  Model Data  */
-	int ID;
-
-	Point max;
-	Point min;
-
-	Object *cage;
+	glm::mat4 _modelMatrix;
+	Point _max;
+	Point _min;
 
 	/*  Functions   */
-	void _Draw(Shader shader);
+	void _LoadModel(std::string const & path);
 
-	void _loadModel(std::string const & path);
+	void _ProcessNode(aiNode * node, const aiScene * scene);
 
-	void _processNode(aiNode * node, const aiScene * scene);
+	Mesh _ProcessMesh(aiMesh * mesh, const aiScene * scene);
 
-	Mesh _processMesh(aiMesh * mesh, const aiScene * scene);
-
-	std::vector<Texture> _loadMaterialTextures(aiMaterial * mat, aiTextureType type, std::string typeName);
+	std::vector<Texture> _LoadMaterialTextures(aiMaterial * mat, aiTextureType type, std::string typeName);
 };
 
-void Model::setID(int id)
+void Model::Print()
 {
-	this->ID = id;
-}
+	glm::mat4 tmp_model_matrix = _modelMatrix;
 
-void Model::addTexture(std::string path, std::string type = "texture_diffuse")
-{
-	// THIS ASSUMES THERE ARE NO DELETE OPERATIONS IN THE VECTOR
-	auto temp_id = textures_loaded.size() + 1;
-	Texture temp;
-	temp.id = temp_id;
-	temp.path = path;
-	temp.type = type;
-	textures_loaded.push_back(temp);
-}
+	double tmp_model_array[16] = { 0.0 };
 
-void Model::printModel()
-{
-	std::cout << "Object " << ID << " is at~~" << std::endl;
-	glm::mat4 pMat4 = cage->getModelMatrix();  // your matrix
-
-	double dArray[16] = { 0.0 };
-
-	const float *pSource = (const float*)glm::value_ptr(pMat4);
+	const float *tmp_pointer = (const float*)glm::value_ptr(tmp_model_matrix);
 	for (int i = 0; i < 16; ++i)
-		dArray[i] = pSource[i];
+		tmp_model_array[i] = tmp_pointer[i];
 
-	std::cout << " [0]: " << dArray[0] << " [1]: " << dArray[1] << " [2]: " << dArray[2] << " [3]: " << dArray[3] << std::endl;
-	std::cout << " [4]: " << dArray[4] << " [5]: " << dArray[5] << " [6]: " << dArray[6] << " [7]: " << dArray[7] << std::endl;
-	std::cout << " [8]: " << dArray[8] << " [9]: " << dArray[9] << " [10]: " << dArray[10] << " [11]: " << dArray[11] << std::endl;
-	std::cout << " [12]: " << dArray[12] << " [13]: " << dArray[13] << " [14]: " << dArray[14] << " [15]: " << dArray[15] << std::endl;
+	std::cout << " [0] : " << tmp_model_array[0] << " [1] : " << tmp_model_array[1] << " [2] : " << tmp_model_array[2] << " [3] : " << tmp_model_array[3] << std::endl;
+	std::cout << " [4] : " << tmp_model_array[4] << " [5] : " << tmp_model_array[5] << " [6] : " << tmp_model_array[6] << " [7] : " << tmp_model_array[7] << std::endl;
+	std::cout << " [8] : " << tmp_model_array[8] << " [9] : " << tmp_model_array[9] << " [10]: " << tmp_model_array[10] << " [11]: " << tmp_model_array[11] << std::endl;
+	std::cout << " [12]: " << tmp_model_array[12] << " [13]: " << tmp_model_array[13] << " [14]: " << tmp_model_array[14] << " [15]: " << tmp_model_array[15] << std::endl;
 	std::cout << std::endl;
-}
-
-void Model::printPosition()
-{
-	std::cout << "Object " << ID << " is at~~";	
-	cage->printBox();
-}
-
-void Model::doCollusion(Model &other)
-{
-	if (this->ID == other.ID)
-	{
-		return;
-	}
-	cage->doCollusion(*other.cage);
-}
-
-void Model::doCollusionCoin(Model & other)
-{
-	if (this->ID == other.ID)
-	{
-		return;
-	}
-	cage->doCollusion(*other.cage);
-}
-
-MovementType Model::getRandomMovmeent()
-{
-	return cage->getMovementType();
-}
-
-void Model::setMovementType(MovementType movementType)
-{
-	cage->setMovementType(movementType);
 }
 
 void Model::ScaleModel(glm::vec3 scaleVector)
 {
-	cage->scale(scaleVector);
+	//_modelMatrix = glm::scale(glm::mat4(1.0f), scaleVector);
+	_modelMatrix = glm::scale(_modelMatrix, scaleVector);
 }
 
-void Model::update(Shader shader)
+void Model::Move(glm::vec3 vec)
 {
-	float currentFrame = glfwGetTime();
-
-	cage->update(currentFrame);
-	//if (cage->getCenter().x < 10 )
-	//{
-
-		_Draw(shader);
-
-	//}
-	//cage->update(currentFrame);
-
-	//_Draw(shader);
+	_modelMatrix = glm::translate(_modelMatrix, vec);
 }
 
-void Model::turnTowards(Directions dir)
+void Model::MoveTo(glm::vec3 vec)
 {
-	cage->turnTowards(dir);
+	_modelMatrix = glm::translate(glm::mat4(1.0f), vec);
 }
 
-inline glm::mat4 Model::getModelMatrix()
+glm::mat4 Model::GetModelMatrix()
 {
-	return cage->getModelMatrix();
+	return _modelMatrix;
 }
 
-glm::vec3 Model::getPosition()
+Point Model::GetMax()
 {
-	return cage->getCenter();
+	return this->_max;
 }
 
-inline void Model::setPosition(glm::vec3 pos)
+Point Model::GetMin()
 {
-	cage->placeTo(pos);
+	return this->_min;
 }
 
-// draws the model, and thus all its meshes
-void Model::_Draw(Shader shader)
+// draws the _model, and thus all its meshes
+void Model::Draw(Shader shader)
 {
 	for (unsigned int i = 0; i < meshes.size(); i++)
 	{
@@ -219,8 +131,8 @@ void Model::_Draw(Shader shader)
 	}
 }
 
-// loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
-void Model::_loadModel(std::string const &path)
+// loads a _model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
+void Model::_LoadModel(std::string const &path)
 {
 	// read file via ASSIMP
 	Assimp::Importer importer;
@@ -235,11 +147,11 @@ void Model::_loadModel(std::string const &path)
 	directory = path.substr(0, path.find_last_of('/'));
 
 	// process ASSIMP's root node recursively
-	_processNode(scene->mRootNode, scene);
+	_ProcessNode(scene->mRootNode, scene);
 }
 
 // processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
-void Model::_processNode(aiNode *node, const aiScene *scene)
+void Model::_ProcessNode(aiNode *node, const aiScene *scene)
 {
 	// process each mesh located at the current node
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
@@ -247,17 +159,17 @@ void Model::_processNode(aiNode *node, const aiScene *scene)
 		// the node object only contains indices to index the actual objects in the scene. 
 		// the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-		meshes.push_back(_processMesh(mesh, scene));
+		meshes.push_back(_ProcessMesh(mesh, scene));
 	}
 	// after we've processed all of the meshes (if any) we then recursively process each of the children nodes
 	for (unsigned int i = 0; i < node->mNumChildren; i++)
 	{
-		_processNode(node->mChildren[i], scene);
+		_ProcessNode(node->mChildren[i], scene);
 	}
 
 }
 
-Mesh Model::_processMesh(aiMesh *mesh, const aiScene *scene)
+Mesh Model::_ProcessMesh(aiMesh *mesh, const aiScene *scene)
 {
 	// data to fill
 	std::vector<Vertex> vertices;
@@ -276,14 +188,14 @@ Mesh Model::_processMesh(aiMesh *mesh, const aiScene *scene)
 		vertex.Position = vector;
 		//////////////////////////////////////
 
-		//cage->setupCollusionBox(vector);
-		if (min.x > vector.x) { min.x = vector.x; }
-		if (min.y > vector.y) { min.y = vector.x; }
-		if (min.z > vector.z) { min.z = vector.z; }
+		//_cage->SetupCollusionBox(vector);
+		if (_min.x > vector.x) { _min.x = vector.x; }
+		if (_min.y > vector.y) { _min.y = vector.x; }
+		if (_min.z > vector.z) { _min.z = vector.z; }
 
-		if (max.x < vector.x) { max.x = vector.x; }
-		if (max.y < vector.y) { max.y = vector.x; }
-		if (max.z < vector.z) { max.z = vector.z; }		
+		if (_max.x < vector.x) { _max.x = vector.x; }
+		if (_max.y < vector.y) { _max.y = vector.x; }
+		if (_max.z < vector.z) { _max.z = vector.z; }		
 
 		//////////////////////////////////////
 		// normals
@@ -333,16 +245,16 @@ Mesh Model::_processMesh(aiMesh *mesh, const aiScene *scene)
 	// normal: texture_normalN
 
 	// 1. diffuse maps
-	std::vector<Texture> diffuseMaps = _loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
+	std::vector<Texture> diffuseMaps = _LoadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
 	textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
 	// 2. specular maps
-	std::vector<Texture> specularMaps = _loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
+	std::vector<Texture> specularMaps = _LoadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
 	textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
 	// 3. normal maps
-	std::vector<Texture> normalMaps = _loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
+	std::vector<Texture> normalMaps = _LoadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
 	textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
 	// 4. height maps
-	std::vector<Texture> heightMaps = _loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
+	std::vector<Texture> heightMaps = _LoadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
 	textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
 
 	// return a mesh object created from the extracted mesh data
@@ -351,7 +263,7 @@ Mesh Model::_processMesh(aiMesh *mesh, const aiScene *scene)
 
 // checks all material textures of a given type and loads the textures if they're not loaded yet.
 // the required info is returned as a Texture struct.
-std::vector<Texture> Model::_loadMaterialTextures(aiMaterial *mat, aiTextureType type, std::string typeName)
+std::vector<Texture> Model::_LoadMaterialTextures(aiMaterial *mat, aiTextureType type, std::string typeName)
 {
 	std::vector<Texture> textures;
 	for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
@@ -376,7 +288,7 @@ std::vector<Texture> Model::_loadMaterialTextures(aiMaterial *mat, aiTextureType
 			texture.type = typeName;
 			texture.path = str.C_Str();
 			textures.push_back(texture);
-			textures_loaded.push_back(texture);  // store it as texture loaded for entire model, to ensure we won't unnecesery load duplicate textures.
+			textures_loaded.push_back(texture);  // store it as texture loaded for entire _model, to ensure we won't unnecesery load duplicate textures.
 		}
 	}
 	return textures;

@@ -14,21 +14,19 @@ public:
 
 	void update();
 
-	void addEnemy();
+	void addEnemy(const std::string &filepath);
 
-	void addPlayer();
+	void addPlayer(const std::string &filepath);
 
-	void addCoin();
+	void addCoin(const std::string &filepath);
 	
 private:
 	GameEngine() {}
 
 
-	std::map<Object*, std::string> cages;
-	std::map<Model*, std::string> models;
 	//std::vector<Object*> cages;
-	//std::vector<Model*> model;
-	//std::vector<PhysicEngine*> physic;
+	std::vector<Model*> enemyModels;
+	Model *playerModel;
 };
 
 GameEngine GameEngine::getInstance()
@@ -47,19 +45,19 @@ void GameEngine::update()
 
 }
 
-void GameEngine::addEnemy()
+void GameEngine::addEnemy(const std::string &filepath)
 {
-
+	enemyModels.push_back(new Model(filepath));
 }
 
-void GameEngine::addPlayer()
+void GameEngine::addPlayer(const std::string &filepath)
 {
-
+	playerModel = new Model(filepath);
 }
 
-void GameEngine::addCoin()
+void GameEngine::addCoin(const std::string &filepath)
 {
-
+	
 }
 
 #endif

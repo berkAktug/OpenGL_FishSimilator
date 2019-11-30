@@ -331,7 +331,7 @@ publish, and distribute this file as you see fit.
 // the Radiance .HDR file format, although the support is provided
 // generically. You can still load any file through the existing interface;
 // if you attempt to load an HDR file, it will be automatically remapped to
-// LDR, assuming gamma 2.2 and an arbitrary scale factor defaulting to 1;
+// LDR, assuming gamma 2.2 and an arbitrary Scale factor defaulting to 1;
 // both of these constants can be reconfigured through this interface:
 //
 //     stbi_hdr_to_ldr_gamma(2.2f);
@@ -1119,7 +1119,7 @@ static unsigned char *stbi__load_and_postprocess_8bit(stbi__context *s, int *x, 
 		ri.bits_per_channel = 8;
 	}
 
-	// @TODO: move stbi__convert_format to here
+	// @TODO: Move stbi__convert_format to here
 
 	if (stbi__vertically_flip_on_load) {
 		int w = *x, h = *y;
@@ -1156,7 +1156,7 @@ static stbi__uint16 *stbi__load_and_postprocess_16bit(stbi__context *s, int *x, 
 		ri.bits_per_channel = 16;
 	}
 
-	// @TODO: move stbi__convert_format16 to here
+	// @TODO: Move stbi__convert_format16 to here
 	// @TODO: special case RGB-to-Y (and RGBA-to-YA) for 8-bit-to-16-bit case to keep more precision
 
 	if (stbi__vertically_flip_on_load) {
@@ -1875,7 +1875,7 @@ stbi_inline static int stbi__jpeg_huff_decode(stbi__jpeg *j, stbi__huffman *h)
 
 	if (j->code_bits < 16) stbi__grow_buffer_unsafe(j);
 
-	// look at the top FAST_BITS and determine what symbol ID it is,
+	// look at the top FAST_BITS and determine what symbol _ID it is,
 	// if the code is <= FAST_BITS
 	c = (j->code_buffer >> (32 - FAST_BITS)) & ((1 << FAST_BITS) - 1);
 	k = h->fast[c];
@@ -2275,7 +2275,7 @@ static void stbi__idct_block(stbi_uc *out, int out_stride, short data[64])
 		// no fast case since the first 1D IDCT spread components out
 		STBI__IDCT_1D(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7])
 			// constants scaled things up by 1<<12, plus we had 1<<2 from first
-			// loop, plus horizontal and vertical each scale by sqrt(8) so together
+			// loop, plus horizontal and vertical each Scale by sqrt(8) so together
 			// we've got an extra 1<<3, so 1<<17 total we need to remove.
 			// so we want to round that, which means adding 0.5 * 1<<17,
 			// aka 65536. Also, we'll end up with -128 to 127 that we want
@@ -4438,7 +4438,7 @@ static int stbi__create_png_image_raw(stbi__png *a, stbi_uc *raw, stbi__uint32 r
 			stbi_uc *in = a->out + stride * j + x * out_n - img_width_bytes;
 			// unpack 1/2/4-bit into a 8-bit buffer. allows us to keep the common 8-bit path optimal at minimal cost for 1/2/4-bit
 			// png guarante byte alignment, if width is not multiple of 8/4/2 we'll decode dummy trailing data that will be skipped in the later loop
-			stbi_uc scale = (color == 0) ? stbi__depth_scale_table[depth] : 1; // scale grayscale values to 0..255 range
+			stbi_uc scale = (color == 0) ? stbi__depth_scale_table[depth] : 1; // Scale grayscale values to 0..255 range
 
 																			   // note that the final byte might overshoot and write more data than desired.
 																			   // we can allocate enough data that this never writes out of memory, but it
@@ -4994,11 +4994,11 @@ static int stbi__high_bit(unsigned int z)
 
 static int stbi__bitcount(unsigned int a)
 {
-	a = (a & 0x55555555) + ((a >> 1) & 0x55555555); // max 2
-	a = (a & 0x33333333) + ((a >> 2) & 0x33333333); // max 4
-	a = (a + (a >> 4)) & 0x0f0f0f0f; // max 8 per 4, now 8 bits
-	a = (a + (a >> 8)); // max 16 per 8 bits
-	a = (a + (a >> 16)); // max 32 per 8 bits
+	a = (a & 0x55555555) + ((a >> 1) & 0x55555555); // _max 2
+	a = (a & 0x33333333) + ((a >> 2) & 0x33333333); // _max 4
+	a = (a + (a >> 4)) & 0x0f0f0f0f; // _max 8 per 4, now 8 bits
+	a = (a + (a >> 8)); // _max 16 per 8 bits
+	a = (a + (a >> 16)); // _max 32 per 8 bits
 	return a & 0xff;
 }
 
@@ -5055,7 +5055,7 @@ static void *stbi__bmp_parse_header(stbi__context *s, stbi__bmp_data *info)
 		stbi__get32le(s); // discard hres
 		stbi__get32le(s); // discard vres
 		stbi__get32le(s); // discard colorsused
-		stbi__get32le(s); // discard max important
+		stbi__get32le(s); // discard _max important
 		if (hsz == 40 || hsz == 56) {
 			if (hsz == 56) {
 				stbi__get32le(s);
@@ -6939,7 +6939,7 @@ static int      stbi__pnm_info(stbi__context *s, int *x, int *y, int *comp)
 	*y = stbi__pnm_getinteger(s, &c); // read height
 	stbi__pnm_skip_whitespace(s, &c);
 
-	maxv = stbi__pnm_getinteger(s, &c);  // read max value
+	maxv = stbi__pnm_getinteger(s, &c);  // read _max value
 
 	if (maxv > 255)
 		return stbi__err("max value > 255", "PPM image not 8-bit");

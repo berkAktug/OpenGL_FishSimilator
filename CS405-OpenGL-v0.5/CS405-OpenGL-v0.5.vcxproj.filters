@@ -32,9 +32,6 @@
     <ClInclude Include="Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="filesystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -56,13 +53,7 @@
     <ClInclude Include="Enums.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CollusionAlgo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="PhysicsEngine.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Object.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="GameEngine.h">

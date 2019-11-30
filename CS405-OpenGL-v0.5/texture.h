@@ -10,8 +10,8 @@
 // It also hosts utility functions for easy management.
 class Texture3D {
 public:
-	//GLuint getID() { return this->ID; }
-	// Holds the ID of the texture object, used for all texture operations
+	//GLuint getID() { return this->_ID; }
+	// Holds the _ID of the texture object, used for all texture operations
 	// to reference to this particular texture
 	GLuint ID;
 
@@ -43,9 +43,9 @@ public:
 	void Bind() const;
 
 private:
-	// Holds the ID of the texture object, used for all texture operations
+	// Holds the _ID of the texture object, used for all texture operations
 	// to reference to this particular texture
-	//GLuint ID;
+	//GLuint _ID;
 	// Texture image dimensions
 	GLuint Width, Height;
 

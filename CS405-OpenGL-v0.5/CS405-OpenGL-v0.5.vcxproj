@@ -27,12 +27,9 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="GameEngine.h" />
     <ClInclude Include="GameObject.h" />
-    <ClInclude Include="Object.h" />
-    <ClInclude Include="CollusionAlgo.h" />
     <ClInclude Include="PhysicsEngine.h" />
     <ClInclude Include="values.h" />
     <ClInclude Include="Enums.h" />
-    <ClInclude Include="filesystem.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="shader.h" />
