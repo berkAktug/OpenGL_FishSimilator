@@ -55,8 +55,8 @@ public:
 
 	glm::mat4 GetModelMatrix();
 
-	Point GetMax();
-	Point GetMin();
+	Point GetInitialMax();
+	Point GetInitialMin();
 
 private:
 	/*  Model Data  */
@@ -91,10 +91,29 @@ void Model::Print()
 	std::cout << std::endl;
 }
 
-void Model::ScaleModel(glm::vec3 scaleVector)
+void Model::ScaleModel(glm::vec3 scale)
 {
 	//_modelMatrix = glm::scale(glm::mat4(1.0f), scaleVector);
-	_modelMatrix = glm::scale(_modelMatrix, scaleVector);
+
+	double depth  = _max.x - _min.x;
+	double height = _max.y - _min.y;
+	double width  = _max.z - _min.z;
+
+	double diff_depth = (depth  * scale.x) - depth;
+	double diff_height = (height * scale.y) - height;
+	double diff_width = (width  * scale.z) - width;
+
+	_max.x += diff_depth / 2;
+	_min.x -= diff_depth / 2;
+	 
+	_max.z += diff_width / 2;
+	_min.z -= diff_width / 2;
+	 
+	_max.y += diff_height / 2;
+	_min.y -= diff_height / 2;
+
+
+	_modelMatrix = glm::scale(_modelMatrix, scale);
 }
 
 void Model::Move(glm::vec3 vec)
@@ -112,12 +131,12 @@ glm::mat4 Model::GetModelMatrix()
 	return _modelMatrix;
 }
 
-Point Model::GetMax()
+Point Model::GetInitialMax()
 {
 	return this->_max;
 }
 
-Point Model::GetMin()
+Point Model::GetInitialMin()
 {
 	return this->_min;
 }

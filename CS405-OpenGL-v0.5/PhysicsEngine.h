@@ -23,7 +23,7 @@ struct BoxAABB
 		center.z = (max.z - min.z)/2;
 	}
 
-	void move(const glm::vec3 &vec)
+	void Move(const glm::vec3 &vec)
 	{
 		max.x += vec.x;
 		min.x += vec.x;
@@ -33,15 +33,47 @@ struct BoxAABB
 
 		max.z += vec.z;
 		min.z += vec.z;
+
+		center.x += vec.x;
+		center.y += vec.y;
+		center.z += vec.z;
 	}
 
-	bool intersect(BoxAABB b) {
+	bool Intersect(BoxAABB b) {
 		return  (min.x <= b.max.x && max.x >= b.min.x) &&
 			(min.y <= b.max.y && max.y >= b.min.y) &&
 			(min.z <= b.max.z && max.z >= b.min.z);
 	}
 
-	bool isPointInsideAABB(Point point) {
+	bool IsInsideBoxBoxAABB(const BoxAABB & biggerBox)
+	{
+		auto is_inside_x = false;
+		auto is_inside_y = false;
+		auto is_inside_z = false;
+
+		auto is_inside_all = true;
+
+		if (biggerBox.max.x > this->max.x && biggerBox.min.x < this->min.x) 
+		{
+			is_inside_x = true;
+		}
+
+		if (biggerBox.max.y > this->max.y && biggerBox.min.y < this->min.y)
+		{
+			is_inside_y = true;
+		}
+
+		if (biggerBox.max.z > this->max.z && biggerBox.min.z < this->min.z)
+		{
+			is_inside_z = true;
+		}
+
+		is_inside_all = is_inside_x && is_inside_y && is_inside_z;
+
+		return is_inside_all;
+	}
+
+	bool IsPointInsideAABB(Point point) {
 		return (point.x >= min.x && point.x <= max.x) &&
 			(point.y >= min.y && point.y <= max.y) &&
 			(point.z >= min.z && point.z <= max.z);
@@ -66,16 +98,18 @@ class PhysicEngine {
 
 public:
 	PhysicEngine(Point max, Point min) : _deltaTime(0.0f), _isMoveable(true), 
-		_vel(VECTOR_ZERO) //, _scaleFactor(glm::vec3(1.0f))
+		_vel(VECTOR_ZERO), _acc(VECTOR_ZERO) //, _scaleFactor(glm::vec3(1.0f))
 	{
-		_box = BoxAABB(max, min);
+		_cage = BoxAABB(max, min);
 
 		_SetCenter(max, min);
-		//_box.max = max;
-		//_box.min = min;
+		//_cage.max = max;
+		//_cage.min = min;
 	}
 
 	glm::vec3 GetVelocity();
+
+	bool DoBoundryCollusion();
 
 	void DoCollusion(PhysicEngine *other);
 
@@ -101,7 +135,7 @@ public:
 	void MoveTo(glm::vec3 point);
 
 private:
-	BoxAABB _box;
+	BoxAABB _cage;
 
 	/* Time since last frame */
 	float _deltaTime;
@@ -131,27 +165,28 @@ glm::vec3 PhysicEngine::GetVelocity()
 	return this->_vel;
 }
 
-void PhysicEngine::DoCollusion(PhysicEngine *other)
+bool PhysicEngine::DoBoundryCollusion()
 {
-	if (!_CheckIsInGameField())
+	if (!this->_CheckIsInGameField())
 	{
 		// lhs object is not within game field.
-		std::cout << "Object1 is not in gamefield. Returning them to the mother base. Over." << std::endl;
-		_SolveSurfaceCollusion();
-	}
-	if (!other->_CheckIsInGameField())
-	{
-		// rhs object is not within game field.
-		std::cout << "Object2 is not in gamefield. Returning them to the mother base. Over." << std::endl;
-		_SolveSurfaceCollusion();
-	}
+		//std::cout << "Object is not in gamefield. Returning them to the mother base. Over." << std::endl;
+		std::cout << "Before function coordinates are: ";
+		Print();
 
+		_SolveSurfaceCollusion();
+		return true;
+	}
+	return false;
+}
 
-	if ((this->_box.intersect(other->_box)) || other->_box.intersect(this->_box))
+void PhysicEngine::DoCollusion(PhysicEngine *other)
+{
+	if ((this->_cage.Intersect(other->_cage)) || other->_cage.Intersect(this->_cage))
 	{
 		std::cout << "Collusion Detected AABB Box" << std::endl;
-		_box.Print();
-		other->_box.Print();
+		_cage.Print();
+		other->_cage.Print();
 
 		_SolveCollusionBox(*other);
 	}
@@ -181,7 +216,7 @@ void PhysicEngine::Apply(float delta_time)
 	// f'(x)  = velocity
 	// f''(x) = acceleration
 
-	_box.center += _vel * delta_time;
+	_cage.center += _vel * delta_time;
 
 	_vel += _acc * delta_time;
 
@@ -192,34 +227,34 @@ void PhysicEngine::Apply(float delta_time)
 
 glm::vec3 PhysicEngine::GetCenter()
 {
-	return _box.center;
+	return _cage.center;
 }
 
 void PhysicEngine::_SetCenter(glm::vec3 center)
 {
-	auto diff_x = (_box.max.x - _box.min.x)/2;
-	auto diff_y = (_box.max.x - _box.min.y)/2;
-	auto diff_z = (_box.max.x - _box.min.y)/2;
+	auto diff_x = (_cage.max.x - _cage.min.x)/2;
+	auto diff_y = (_cage.max.x - _cage.min.y)/2;
+	auto diff_z = (_cage.max.x - _cage.min.y)/2;
 
-	_box.center = center;
+	_cage.center = center;
 
-	_box.max.x = _box.center.x + diff_x;
-	_box.min.x = _box.center.x - diff_x;
+	_cage.max.x = _cage.center.x + diff_x;
+	_cage.min.x = _cage.center.x - diff_x;
 
-	_box.max.y = _box.center.y + diff_y;
-	_box.max.y = _box.center.y - diff_y;
+	_cage.max.y = _cage.center.y + diff_y;
+	_cage.max.y = _cage.center.y - diff_y;
 
-	_box.max.z = _box.center.z + diff_z;
-	_box.max.z = _box.center.z - diff_z;
+	_cage.max.z = _cage.center.z + diff_z;
+	_cage.max.z = _cage.center.z - diff_z;
 }
 
 void PhysicEngine::_SetCenter(Point max, Point min)
 {
-	auto center_x = (_box.max.x + _box.min.x) / 2;
-	auto center_y = (_box.max.x + _box.min.y) / 2;
-	auto center_z = (_box.max.x + _box.min.y) / 2;
+	auto center_x = (_cage.max.x + _cage.min.x) / 2;
+	auto center_y = (_cage.max.x + _cage.min.y) / 2;
+	auto center_z = (_cage.max.x + _cage.min.y) / 2;
 
-	_box.center = glm::vec3(center_x, center_y, center_z);
+	_cage.center = glm::vec3(center_x, center_y, center_z);
 }
 
 bool PhysicEngine::IsMoving()
@@ -239,22 +274,22 @@ void PhysicEngine::SetMoveablity(bool isMoveable)
 
 void PhysicEngine::Scale(glm::vec3 scale)
 {
-	double depth = _box.max.x - _box.min.x;
-	double height = _box.max.x - _box.min.y;
-	double width = _box.max.x - _box.min.z;
+	double depth = _cage.max.x - _cage.min.x;
+	double height = _cage.max.y - _cage.min.y;
+	double width = _cage.max.z - _cage.min.z;
 
 	double diff_depth = (depth  * scale.x) - depth;
 	double diff_height = (height * scale.y) - height;
 	double diff_width = (width  * scale.z) - width;
 
-	_box.max.x += diff_depth / 2;
-	_box.min.x -= diff_depth / 2;
+	_cage.max.x += diff_depth / 2;
+	_cage.min.x -= diff_depth / 2;
 
-	_box.max.z += diff_width / 2;
-	_box.min.z -= diff_width / 2;
+	_cage.max.z += diff_width / 2;
+	_cage.min.z -= diff_width / 2;
 
-	_box.max.y += diff_height / 2;
-	_box.min.y -= diff_height / 2;
+	_cage.max.y += diff_height / 2;
+	_cage.min.y -= diff_height / 2;
 
 	_CheckBoxBoundry();
 }
@@ -263,29 +298,29 @@ void PhysicEngine::MoveTo(glm::vec3 point)
 {
 	_CheckBoxBoundry();
 
-	double dist_x = _box.max.x - _box.min.x;
-	_box.max.x = point.x + dist_x / 2;
-	_box.min.x = point.x - dist_x / 2;
+	double dist_x = _cage.max.x - _cage.min.x;
+	_cage.max.x = point.x + dist_x / 2;
+	_cage.min.x = point.x - dist_x / 2;
 
-	double dist_y = _box.max.y - _box.min.y;
-	_box.max.y = point.y + dist_y / 2;
-	_box.min.y = point.y - dist_y / 2;
+	double dist_y = _cage.max.y - _cage.min.y;
+	_cage.max.y = point.y + dist_y / 2;
+	_cage.min.y = point.y - dist_y / 2;
 
-	double dist_z = _box.max.z - _box.min.z;
-	_box.max.z = point.z + dist_z / 2;
-	_box.min.z = point.z - dist_z / 2;
+	double dist_z = _cage.max.z - _cage.min.z;
+	_cage.max.z = point.z + dist_z / 2;
+	_cage.min.z = point.z - dist_z / 2;
 
-	_SetCenter(_box.max, _box.min);
+	_SetCenter(_cage.max, _cage.min);
 }
 
 void PhysicEngine::Move(glm::vec3 scale_factor)
 {
-	_box.move(this->_vel * scale_factor);
+	_cage.Move(this->_vel * scale_factor);
 }
 
 void PhysicEngine::Print()
 {
-	_box.Print();
+	_cage.Print();
 }
 
 void PhysicEngine::_CheckLimitAcceleration()
@@ -332,51 +367,96 @@ void PhysicEngine::_ApplyFriction()
 	}
 }
 
-
 void PhysicEngine::_CheckBoxBoundry()
 {
-	if (_box.max.x < _box.min.x)
+	if (_cage.max.x < _cage.min.x)
 	{
-		std::swap(_box.max.x, _box.min.x);
+		std::swap(_cage.max.x, _cage.min.x);
 	}
-	if (_box.max.y < _box.min.y)
+	if (_cage.max.y < _cage.min.y)
 	{
-		std::swap(_box.max.y, _box.min.y);
+		std::swap(_cage.max.y, _cage.min.y);
 	}
-	if (_box.max.z < _box.min.z)
+	if (_cage.max.z < _cage.min.z)
 	{
-		std::swap(_box.max.z, _box.min.z);
+		std::swap(_cage.max.z, _cage.min.z);
 	}
 }
 
 void PhysicEngine::_SolveSurfaceCollusion()
 {
-	if (!gameBoundry.isPointInsideAABB(_box.max))
-	{
-		auto posx = _box.max.x <= gameBoundry.max.x ? _box.max.x : gameBoundry.max.x - _box.max.x;
-		auto posy = _box.max.y <= gameBoundry.max.y ? _box.max.y : gameBoundry.max.y - _box.max.y;
-		auto posz = _box.max.z <= gameBoundry.max.z ? _box.max.z : gameBoundry.max.z - _box.max.z;
+	auto dist_x = _cage.max.x - _cage.min.x;
+	auto dist_y = _cage.max.y - _cage.min.y;
+	auto dist_z = _cage.max.z - _cage.min.z;
 
-		MoveTo(glm::vec3(posx, posy, posz));
-	}
-	if (!gameBoundry.isPointInsideAABB(_box.min))
+	if (_cage.max.x > gameBoundry.max.x)
 	{
-		auto posx = _box.min.x >= gameBoundry.min.x ? _box.min.x : gameBoundry.min.x + _box.min.x;
-		auto posy = _box.min.y >= gameBoundry.min.y ? _box.min.y : gameBoundry.min.y + _box.min.y;
-		auto posz = _box.min.z >= gameBoundry.min.z ? _box.min.z : gameBoundry.min.z + _box.min.z;
-
-		MoveTo(glm::vec3(posx, posy, posz));
+		dist_x = gameBoundry.max.x - _cage.max.x;
 	}
+	if (_cage.min.x < gameBoundry.min.x)
+	{
+		dist_x = _cage.min.x - gameBoundry.min.x;
+	}
+
+	if (_cage.max.y > gameBoundry.max.y)
+	{
+		dist_y = gameBoundry.max.y - _cage.max.y;
+	}
+	if (_cage.min.y < gameBoundry.min.y)
+	{
+		dist_y = _cage.min.y - gameBoundry.min.y;
+	}
+
+	if (_cage.max.z > gameBoundry.max.z)
+	{
+		dist_z = gameBoundry.max.z - _cage.max.z;
+	}
+	if (_cage.min.z < gameBoundry.min.z)
+	{
+		dist_z = _cage.min.z - gameBoundry.min.z;
+	}
+
+	MoveTo(glm::vec3(dist_x, dist_y, dist_z));
+	//Move(glm::vec3(dist_x, dist_y, dist_z));
 }
+
+//void PhysicEngine::_SolveSurfaceCollusion()
+//{
+
+	//if (!gameBoundry.IsPointInsideAABB(_cage.max))
+	//{
+		//auto posx = _cage.max.x <= gameBoundry.max.x ? _cage.max.x : gameBoundry.max.x - _cage.max.x;
+		//auto posy = _cage.max.y <= gameBoundry.max.y ? _cage.max.y : gameBoundry.max.y - _cage.max.y;
+		//auto posz = _cage.max.z <= gameBoundry.max.z ? _cage.max.z : gameBoundry.max.z - _cage.max.z;
+
+	//}
+	//if (!gameBoundry.IsPointInsideAABB(_cage.min))
+	//{
+		//auto posx = _cage.min.x >= gameBoundry.min.x ? _cage.min.x : gameBoundry.min.x + _cage.min.x;
+		//auto posy = _cage.min.y >= gameBoundry.min.y ? _cage.min.y : gameBoundry.min.y + _cage.min.y;
+		//auto posz = _cage.min.z >= gameBoundry.min.z ? _cage.min.z : gameBoundry.min.z + _cage.min.z;
+
+		//MoveTo(glm::vec3(posx, posy, posz));
+	//}
+//}
 
 bool PhysicEngine::_CheckIsInGameField()
 {
-	if (gameBoundry.isPointInsideAABB(_box.max) && gameBoundry.isPointInsideAABB(_box.min))
+	if (_cage.IsInsideBoxBoxAABB(gameBoundry))
 	{
 		return true;
 	}
 	return false;
 }
+
+//bool PhysicEngine::_CheckIsInGameField()
+//{
+//	if (gameBoundry.IsPointInsideAABB(_cage.max) && gameBoundry.IsPointInsideAABB(_cage.min))
+//	{
+//		return true;
+//	}
+//	return false;
+//}
 
 void PhysicEngine::_SolveCollusionBox(PhysicEngine &other)
 {
@@ -391,56 +471,59 @@ void PhysicEngine::_SolveCollusionBox(PhysicEngine &other)
 			Case 2: This object is on top the of Other object.
 			Case 3: This object is under the Other object.
 			Case 4: This object has been engulfed by Other object.
-			if (_box.max.x > other._box.max.x && _box.min.x < other._box.min.x)
+			if (_cage.max.x > other._cage.max.x && _cage.min.x < other._cage.min.x)
 				// case 1
-			else if (other._box.max.x > _box.min.x && _box.min.x > other._box.min.x)
+			else if (other._cage.max.x > _cage.min.x && _cage.min.x > other._cage.min.x)
 				// case 2
-			else if (_box.max.x > other._box.min.x && other._box.min.x > _box.max.x)
+			else if (_cage.max.x > other._cage.min.x && other._cage.min.x > _cage.max.x)
 				// case 3
-			else if (other._box.max.x > _box.max.x && _box.min.x > other._box.min.x)
+			else if (other._cage.max.x > _cage.max.x && _cage.min.x > other._cage.min.x)
 				// case 4
 		*/
 		// Optimized version.
-		if (other._box.max.x > _box.min.x && other._box.max.x < _box.max.x)
+		if (other._cage.max.x > _cage.min.x && other._cage.max.x < _cage.max.x)
 		{
 			// Covers case 1 && 2
-			dist_x = other._box.max.x - _box.min.x;
+			dist_x = other._cage.max.x - _cage.min.x;
 		}
-		else if (_box.max.x > other._box.min.x && _box.max.x < other._box.max.x)
+		else if (_cage.max.x > other._cage.min.x && _cage.max.x < other._cage.max.x)
 		{
 			// Covers case 3 && 4
-			dist_x = _box.max.x - other._box.min.x;
+			dist_x = _cage.max.x - other._cage.min.x;
 		}
 		dist_x = dist_x / 2;
 
 
-		if (other._box.max.y > _box.min.y && other._box.max.y < _box.max.y)
+		if (other._cage.max.y > _cage.min.y && other._cage.max.y < _cage.max.y)
 		{
 			// Covers case 1 && 2
-			dist_y = other._box.max.y - _box.min.y;
+			dist_y = other._cage.max.y - _cage.min.y;
 		}
-		else if (_box.max.y > other._box.min.y && _box.max.y < other._box.max.y)
+		else if (_cage.max.y > other._cage.min.y && _cage.max.y < other._cage.max.y)
 		{
 			// Covers case 3 && 4
-			dist_y = _box.max.y - other._box.min.y;
+			dist_y = _cage.max.y - other._cage.min.y;
 		}
 		dist_y = dist_y / 2;
 
-		if (other._box.max.z > _box.min.z && other._box.max.z < _box.max.z)
+		if (other._cage.max.z > _cage.min.z && other._cage.max.z < _cage.max.z)
 		{
 			// Covers case 1 && 2
-			dist_z = other._box.max.z - _box.min.z;
+			dist_z = other._cage.max.z - _cage.min.z;
 		}
-		else if (_box.max.z > other._box.min.z && _box.max.z < other._box.max.z)
+		else if (_cage.max.z > other._cage.min.z && _cage.max.z < other._cage.max.z)
 		{
 			// Covers case 3 && 4
-			dist_z = _box.max.z - other._box.min.z;
+			dist_z = _cage.max.z - other._cage.min.z;
 		}
 		dist_z = dist_z / 2;
-
+		
 		auto push_vec = glm::vec3(dist_x, dist_y, dist_z);
 		this->_vel = push_vec;
 		other._vel = push_vec;
+
+		this->_acc -= this->_acc;
+		other._acc -= other._acc;
 	}
 	else
 	{

@@ -26,7 +26,9 @@ public:
 
 	void AccelerateTowards(Directions dir);
 
-	void doCollusion(GameObject *other);
+	void DoBoundryCollusion();
+
+	void DoCollusion(GameObject *other);
 
 private:
 	/*  Object Data  */
@@ -58,7 +60,7 @@ GameObject::GameObject(const std::string &path, ObjectType objectType)
 	: _objectType(objectType), _ID(rand() % 1000), _scaleFactor(1.0f)
 {
 	_model = new Model(path);
-	_physics = new PhysicEngine(_model->GetMax(), _model->GetMin());
+	_physics = new PhysicEngine(_model->GetInitialMax(), _model->GetInitialMin());
 	
 	auto rand_point_vec = Point::getRandomPointVector();
 
@@ -101,8 +103,7 @@ void GameObject::Update(Shader shader)
 	float currentFrame = glfwGetTime();
 	this->_deltaTime = currentFrame - this->_lastTime;
 	this->_lastTime = currentFrame;
-
-
+	
 	_Move();
 
 	_model->Draw(shader);
@@ -113,9 +114,6 @@ void GameObject::Update(std::string shader_key)
 	ResourceManager::GetShader(shader_key).setMat4("model", _model->GetModelMatrix());
 
 	Update(ResourceManager::GetShader(shader_key));
-	//_Move();
-
-	//_model->Draw(ResourceManager::GetShader(shader_key));
 }
 
 void GameObject::ScaleObject(glm::vec3 scale)
@@ -137,12 +135,12 @@ void GameObject::Print()
 	_physics->Print();
 	_model->Print();
 	std::cout
-		<< "Model max x: " << _model->GetMax().x
-		<< " Model max y: " << _model->GetMax().y
-		<< " Model max z: " << _model->GetMax().z << std::endl
-		<< "Model min x: " << _model->GetMin().x
-		<< " Model min y: " << _model->GetMin().y
-		<< " Model min z: " << _model->GetMin().z << std::endl;
+		<<  "Model max x: " << _model->GetInitialMax().x
+		<< " Model max y: " << _model->GetInitialMax().y
+		<< " Model max z: " << _model->GetInitialMax().z << std::endl
+		<<  "Model min x: " << _model->GetInitialMin().x
+		<< " Model min y: " << _model->GetInitialMin().y
+		<< " Model min z: " << _model->GetInitialMin().z << std::endl;
 }
 
 void GameObject::AccelerateTowards(Directions dir)
@@ -177,12 +175,29 @@ void GameObject::AccelerateTowards(Directions dir)
 	}
 }
 
-void GameObject::doCollusion(GameObject *other)
+void GameObject::DoBoundryCollusion()
+{
+	if (_physics->DoBoundryCollusion())
+	{
+		std::cout << "Object ID: " << _ID << " with type: " << _objectType 
+			<< " gone outside of the boundry" << std::endl;
+
+		std::cout << "After function coordinates are: ";
+		_physics->Print();
+		_model->Print();
+
+		std::cout << std::endl;
+	}
+}
+
+void GameObject::DoCollusion(GameObject *other)
 {
 	if (this->_ID == other->_ID)
 	{
 		return;
 	}
+	//std::cout << "Starting collusion " <<_objectType <<" obj1: " << this->_ID 
+	//	<< " &&  " << other->_objectType << " obj2: " << other->_ID << std::endl;
 
 	_physics->DoCollusion(other->_physics);
 }
@@ -245,20 +260,18 @@ void GameObject::_Move()
 		break;
 	}
 	_physics->Move(_scaleFactor);
-	//_model->Move(_physics->GetVelocity() * _physics->GetScaleFactor());
 	_model->Move(_physics->GetVelocity() * _scaleFactor);
 }
 
 void GameObject::_MoveTo(glm::vec3 vec)
 {
-	//auto scale_factor = _physics->GetScaleFactor();
 	_physics->MoveTo(vec * _scaleFactor);
 	_model->MoveTo(vec * _scaleFactor);
 }
 
 glm::vec3 GameObject::_GetUpDownDirectionVector()
 {
-	if (_frameCounter % 60 == 0)
+	if (_frameCounter % 30 == 0)
 	{
 		_frameCounter = 0;
 		
@@ -266,7 +279,7 @@ glm::vec3 GameObject::_GetUpDownDirectionVector()
 	}
 	_frameCounter++;
 
-	return VECTOR_UP * (float)_lastdirection;
+	return VECTOR_UP * (float)_lastdirection * 0.5f;
 }
 
 #endif

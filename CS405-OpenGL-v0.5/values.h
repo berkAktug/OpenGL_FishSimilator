@@ -10,10 +10,10 @@ const double SPEED_LIMIT = 1.0 / DIVISION_COEFFICIENT;
 const double VECTOR_COEFFICIENT = 1.0 / DIVISION_COEFFICIENT;
 
 const double LOWEST_ACCELERATION  = 0.3 / DIVISION_COEFFICIENT;
-const double HIGHEST_ACCELERATION = 4.0 / DIVISION_COEFFICIENT;
+const double HIGHEST_ACCELERATION = 1.0 / DIVISION_COEFFICIENT;
 
-const double GAMEBOUNDRY_X =  30.0;
-const double GAMEBOUNDRY_Y =  20.0;
+const double GAMEBOUNDRY_X =  50.0;
+const double GAMEBOUNDRY_Y =  50.0;
 const double GAMEBOUNDRY_Z =  50.0;
 
 // Constant Vectors
@@ -65,17 +65,13 @@ struct Point {
 
 	static Point getRandomPoint()
 	{
-		double rand_x = rand() % 10;
-		double rand_y = rand() % 10;
-		double rand_z = rand() % 10;
+		double rand_x = rand() % 5;
+		double rand_y = rand() % 5;
+		double rand_z = rand() % 5;
 
-		int rand_sign_x = rand() % 2;
-		int rand_sign_y = rand() % 2;
-		int rand_sign_z = rand() % 2;
-
-		if (rand_sign_x == 0) rand_x *= -1.0;
-		if (rand_sign_y == 0) rand_y *= -1.0;
-		if (rand_sign_z == 0) rand_z *= -1.0;
+		if (rand() % 2 == 0) rand_x *= -1.0;
+		if (rand() % 2 == 0) rand_y *= -1.0;
+		if (rand() % 2 == 0) rand_z *= -1.0;
 
 		return Point(rand_x, rand_y, rand_z);
 	}
