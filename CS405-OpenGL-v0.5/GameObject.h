@@ -23,14 +23,14 @@ public:
 
 	void PlaceRandomly();
 
-	void SetID(int id);
+	void SetID(int id) { _ID = id; }
 
 	void PrintModelMinMax();
 	  
-	glm::mat4 GetModelMatrix()
-	{
-		return _model->GetModelMatrix();
-	}
+	glm::mat4 GetModelMatrix() { return _model->GetModelMatrix(); }
+	void SetModelMatrix(glm::mat4 matrix) { _model->SetModelMatrix(matrix); }
+
+	glm::vec3 GetPosition() { return _rigidBody->GetCenter(); }
 
 	void Print();
 
@@ -42,13 +42,14 @@ public:
 
 	bool CheckCollusion(GameObject *other);
 
-	void setShouldRender(bool shouldRender);
-	bool getShouldRender();
+	void EnableRender() { _renderOn = true; }
+	void DisableRender() { _renderOn = false; }
+	bool getShouldRender() { return _renderOn; }
 
 private:
 	/*  Object Data  */
 	Model *_model;
-	PhysicEngine *_physics;
+	PhysicEngine *_rigidBody;
 
 	MovementType _movementType;
 
@@ -59,7 +60,7 @@ private:
 	int _frameCounter;
 	float _deltaTime;
 
-	bool _shouldRender;
+	bool _renderOn;
 
 	glm::vec3 _scaleFactor;
 
@@ -67,21 +68,25 @@ private:
 	void _Move();
 	void _MoveTo(glm::vec3 vec);
 
-	glm::vec3 _GetUpDownDirectionVector();
+	glm::vec3 _CalculateUpDownVector();
 
-	glm::vec3 _GetRandomDirectionVector();
+	glm::vec3 _CalculateRandomVector();
 };
 
 GameObject::GameObject(const std::string &path, ObjectType objectType) 
-	: _objectType(objectType), _ID(rand() % 1000), _scaleFactor(1.0f), _shouldRender(true)
+	: _objectType(objectType), _ID(rand() % 1000), _scaleFactor(1.0f), _renderOn(true)
 {
+	std::cout << "\n~~~~~~~~~ ID : "<< _ID <<"~~~~~~~~~~~~~~ Type:"<< objectType <<"~~~~~~~~~~~~~~~~\n";
 	_model = new Model(path);
-	//std::cout << "Model Matrix \n";
-	//_model->Print();
+	std::cout << "Model Matrix \n";
+	_model->Print();
+	std::cout << "Model inital values:\n";
+	std::cout << "Max X:" << _model->GetInitialMax().x << " Y:" << _model->GetInitialMax().y << " Z:" << _model->GetInitialMax().z << std::endl;
+	std::cout << "Min X:" << _model->GetInitialMin().x << " Y:" << _model->GetInitialMin().y << " Z:" << _model->GetInitialMin().z << std::endl;
 	
-	_physics = new PhysicEngine(_model->GetInitialMax(), _model->GetInitialMin());
+	_rigidBody = new PhysicEngine(_model->GetInitialMax(), _model->GetInitialMin());
 	std::cout << "Object Cage \n";
-	_physics->Print();
+	_rigidBody->Print();
 
 	switch (objectType)
 	{
@@ -96,11 +101,11 @@ GameObject::GameObject(const std::string &path, ObjectType objectType)
 		_movementType = MovementType::UpDown;
 		break;
 	case Envoirmental:
-		_physics->SetMoveablity(false);
+		_rigidBody->DisableMovement();
 		_movementType = MovementType::NONE;
 		break;
 	case OnScreenPanel:
-		_physics->SetMoveablity(false);
+		_rigidBody->DisableMovement();
 		_movementType = MovementType::NONE;
 		break;
 	default:
@@ -136,7 +141,7 @@ void GameObject::ScaleObject(glm::vec3 scale)
 {
 	_scaleFactor = scale;
 
-	_physics->Scale(scale);
+	_rigidBody->Scale(scale);
 	_model->ScaleModel(scale);
 }
 
@@ -151,11 +156,6 @@ void GameObject::PlaceRandomly()
 	std::cout << "\nAfter Random Placement\n~~~~~~~~~~~~~~~~~~" << std::endl;
 	Print();
 	//PrintModelMinMax();
-}
-
-void GameObject::SetID(int id)
-{
-	_ID = id;
 }
 
 void GameObject::PrintModelMinMax()
@@ -173,7 +173,7 @@ void GameObject::PrintModelMinMax()
 void GameObject::Print()
 {
 	std::cout << "Object " << _ID << " is at~~" << std::endl;
-	_physics->Print();
+	_rigidBody->Print();
 	_model->Print();
 }
 
@@ -187,22 +187,22 @@ void GameObject::AccelerateTowards(Directions dir)
 	switch (dir)
 	{
 	case UP:
-		_physics->AccelerateTowards(VECTOR_UP);
+		_rigidBody->AccelerateTowards(VECTOR_UP);
 		break;
 	case DOWN:
-		_physics->AccelerateTowards(-VECTOR_UP);
+		_rigidBody->AccelerateTowards(-VECTOR_UP);
 		break;
 	case RIGHT:
-		_physics->AccelerateTowards(-VECTOR_LEFT);
+		_rigidBody->AccelerateTowards(-VECTOR_LEFT);
 		break;
 	case LEFT:
-		_physics->AccelerateTowards(VECTOR_LEFT);
+		_rigidBody->AccelerateTowards(VECTOR_LEFT);
 		break;
 	case FORWARD:
-		_physics->AccelerateTowards(VECTOR_FORWARD);
+		_rigidBody->AccelerateTowards(VECTOR_FORWARD);
 		break;
 	case BACKWARD:
-		_physics->AccelerateTowards(-VECTOR_FORWARD);
+		_rigidBody->AccelerateTowards(-VECTOR_FORWARD);
 		break;
 	default:
 		break;
@@ -211,9 +211,9 @@ void GameObject::AccelerateTowards(Directions dir)
 
 void GameObject::DoBoundryCollusion()
 {
-	_physics->DoBoundryCollusion();
-	_model->MoveTo(_physics->GetCenter(), _scaleFactor);
-	//_MoveTo(_physics->GetCenter());
+	_rigidBody->DoBoundryCollusion();
+	_model->MoveTo(_rigidBody->GetCenter(), _scaleFactor);
+	//_MoveTo(_rigidBody->GetCenter());
 }
 
 void GameObject::DoCollusion(GameObject *other)
@@ -225,12 +225,12 @@ void GameObject::DoCollusion(GameObject *other)
 	//std::cout << "Starting collusion " <<_objectType <<" obj1: " << this->_ID 
 	//	<< " &&  " << other->_objectType << " obj2: " << other->_ID << std::endl;
 
-	_physics->DoCollusion(other->_physics);
+	_rigidBody->DoCollusion(other->_rigidBody);
 }
 
 bool GameObject::CheckCollusion(GameObject * other)
 {
-	bool is_collusion = _physics->CheckCollusion(other->_physics);
+	bool is_collusion = _rigidBody->CheckCollusion(other->_rigidBody);
 
 	if (is_collusion)
 	{
@@ -241,24 +241,14 @@ bool GameObject::CheckCollusion(GameObject * other)
 	return is_collusion;
 }
 
-void GameObject::setShouldRender(bool shouldRender)
-{
-	this->_shouldRender = shouldRender;
-}
-
-bool GameObject::getShouldRender()
-{
-	return _shouldRender;
-}
-
-glm::vec3 GameObject::_GetRandomDirectionVector()
+glm::vec3 GameObject::_CalculateRandomVector()
 {
 	if (_frameCounter % 30 == 0)
 	{
 		_frameCounter = 0;
 		_lastdirection = rand() % 6;
 
-		_physics->StopMotion();
+		_rigidBody->StopMotion();
 	}
 	_frameCounter++;
 
@@ -283,7 +273,7 @@ glm::vec3 GameObject::_GetRandomDirectionVector()
 
 void GameObject::_Move()
 {
-	if (!_physics->CanMove() || _objectType == ObjectType::OnScreenPanel || _objectType == ObjectType::Envoirmental)
+	if (!_rigidBody->CanMove() || _objectType == ObjectType::OnScreenPanel || _objectType == ObjectType::Envoirmental)
 	{
 		return;
 	}
@@ -291,34 +281,34 @@ void GameObject::_Move()
 	switch (_movementType)
 	{
 	case Random:
-		_physics->AccelerateTowards(_GetRandomDirectionVector());
-		_physics->Apply(_deltaTime);
+		_rigidBody->AccelerateTowards(_CalculateRandomVector());
+		_rigidBody->Apply(_deltaTime);
 		break;
 	case Normal:
-		_physics->Apply(_deltaTime);
+		_rigidBody->Apply(_deltaTime);
 		break;
 	case UpDown:
-		_physics->AccelerateTowards(_GetUpDownDirectionVector());
-		_physics->Apply(_deltaTime);
+		_rigidBody->AccelerateTowards(_CalculateUpDownVector());
+		_rigidBody->Apply(_deltaTime);
 		break;
 	case NONE:
-		_physics->StopMotion();
+		_rigidBody->StopMotion();
 		break;
 	default:
-		_physics->StopMotion();
+		_rigidBody->StopMotion();
 		break;
 	}
-	_physics->Move(_scaleFactor);
-	_model->Move(_physics->GetVelocity() * _scaleFactor);
+	_rigidBody->Move(_scaleFactor);
+	_model->Move(_rigidBody->GetVelocity());
 }
 
 void GameObject::_MoveTo(glm::vec3 vec)
 {
-	_physics->MoveTo(vec * _scaleFactor);
-	_model->MoveTo(vec * _scaleFactor, _scaleFactor);
+	_rigidBody->MoveTo(vec * _scaleFactor);
+	_model->MoveTo(vec, _scaleFactor);
 }
 
-glm::vec3 GameObject::_GetUpDownDirectionVector()
+glm::vec3 GameObject::_CalculateUpDownVector()
 {
 	if (_frameCounter % 30 == 0)
 	{

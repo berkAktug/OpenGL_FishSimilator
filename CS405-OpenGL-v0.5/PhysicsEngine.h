@@ -5,6 +5,7 @@
 
 #include "Enums.h"
 #include "values.h"
+#include "Point.h"
 
 struct BoxAABB
 {
@@ -100,7 +101,6 @@ struct BoxAABB
 	}
 };
 
-
 static BoxAABB gameBoundry = BoxAABB(Point(GAMEBOUNDRY_X, GAMEBOUNDRY_Y, GAMEBOUNDRY_Z),
 	Point(-GAMEBOUNDRY_X, -GAMEBOUNDRY_Y, -GAMEBOUNDRY_Z));
 
@@ -108,7 +108,7 @@ class PhysicEngine {
 
 public:
 	PhysicEngine(Point max, Point min) : _deltaTime(0.0f), _isMoveable(true), 
-		_vel(VECTOR_ZERO), _acc(VECTOR_ZERO) 
+		_velocity(VECTOR_ZERO), _accel(VECTOR_ZERO) 
 	{
 		_cage = BoxAABB(max, min);
 		_AdjustCenter();
@@ -127,13 +127,16 @@ public:
 	glm::vec3 GetCenter();
 
 	void StopMotion();
-	void ReverseMotion();
+	void ReverseMotion() { _velocity = -_velocity; }
 
 	void Apply(float delta_time);
 
-	bool IsMoving();
-	bool CanMove();
-	void SetMoveablity(bool isMoveable);
+	bool IsMoving() { return _velocity != VECTOR_ZERO; }
+	
+	bool CanMove() { return _isMoveable; }
+
+	void DisableMovement() { _isMoveable = false; }
+	void EnableMovmeent() { _isMoveable = true; }
 
 	void Scale(glm::vec3 scale);
 
@@ -153,10 +156,10 @@ private:
 	bool _isMoveable;
 
 	/* Velocity */
-	glm::vec3 _vel;
+	glm::vec3 _velocity;
 
 	/* Acceleration */
-	glm::vec3 _acc;
+	glm::vec3 _accel;
 
 	void _AdjustCenter();
 
@@ -170,7 +173,7 @@ private:
 
 glm::vec3 PhysicEngine::GetVelocity()
 {
-	return this->_vel;
+	return this->_velocity;
 }
 
 void PhysicEngine::DoBoundryCollusion()
@@ -200,23 +203,19 @@ void PhysicEngine::DoCollusion(PhysicEngine *other)
 
 bool PhysicEngine::CheckCollusion(PhysicEngine * other)
 {
-	//return (_cage.Intersect(other->_cage) || other->_cage.Intersect(_cage));
-	return (_cage.IsPointInsideAABB(other->_cage.center) || other->_cage.IsPointInsideAABB(_cage.center));
+	return (_cage.Intersect(other->_cage) || other->_cage.Intersect(_cage));
+	//return (_cage.IsPointInsideAABB(other->_cage.center) || other->_cage.IsPointInsideAABB(_cage.center));
 }
 
 void PhysicEngine::AccelerateTowards(glm::vec3 acceleration)
 {
-	this->_acc += acceleration;
+	this->_accel += acceleration;
 }
 
 void PhysicEngine::StopMotion()
 {
-	_vel = VECTOR_ZERO;
-}
-
-void PhysicEngine::ReverseMotion()
-{
-	this->_vel = -this->_vel;
+	_velocity = VECTOR_ZERO;
+	_accel = VECTOR_ZERO;
 }
 
 void PhysicEngine::Apply(float delta_time)
@@ -228,9 +227,9 @@ void PhysicEngine::Apply(float delta_time)
 	// f'(x)  = velocity
 	// f''(x) = acceleration
 
-	_cage.center += _vel * delta_time;
+	_cage.center += _velocity * delta_time;
 
-	_vel += _acc * delta_time;
+	_velocity += _accel * delta_time;
 
 	_CheckLimitAcceleration();
 
@@ -249,21 +248,6 @@ inline void PhysicEngine::_AdjustCenter()
 	auto center_z = _cage.min.z + (_cage.max.z - _cage.min.z) / 2;
 
 	_cage.center = glm::vec3(center_x, center_y, center_z);
-}
-
-bool PhysicEngine::IsMoving()
-{
-	return _vel != VECTOR_ZERO;
-}
-
-bool PhysicEngine::CanMove()
-{
-	return _isMoveable;
-}
-
-void PhysicEngine::SetMoveablity(bool isMoveable)
-{
-	this->_isMoveable = isMoveable;
 }
 
 void PhysicEngine::Scale(glm::vec3 scale)
@@ -310,7 +294,7 @@ void PhysicEngine::MoveTo(glm::vec3 point)
 
 void PhysicEngine::Move(glm::vec3 scale_factor)
 {
-	_cage.Move(this->_vel * scale_factor);
+	_cage.Move(this->_velocity * scale_factor);
 	_AdjustCenter();
 }
 
@@ -321,45 +305,43 @@ void PhysicEngine::Print()
 
 void PhysicEngine::_CheckLimitAcceleration()
 {
-	if ((_acc.x > HIGHEST_ACCELERATION && _acc.x >= 0))
+	if ((_accel.x > HIGHEST_ACCELERATION && _accel.x >= 0))
 	{
-		_acc.x = HIGHEST_ACCELERATION;
+		_accel.x = HIGHEST_ACCELERATION;
 	}
-	else if((_acc.x < -HIGHEST_ACCELERATION && _acc.x <= 0))
+	else if((_accel.x < -HIGHEST_ACCELERATION && _accel.x <= 0))
 	{
-		_acc.x = -HIGHEST_ACCELERATION;
+		_accel.x = -HIGHEST_ACCELERATION;
 	}
 
-	if ((_acc.y > HIGHEST_ACCELERATION && _acc.y >= 0))
+	if ((_accel.y > HIGHEST_ACCELERATION && _accel.y >= 0))
 	{
-		_acc.y = HIGHEST_ACCELERATION;
+		_accel.y = HIGHEST_ACCELERATION;
 	}
-	else if((_acc.y < -HIGHEST_ACCELERATION && _acc.y <= 0))
+	else if((_accel.y < -HIGHEST_ACCELERATION && _accel.y <= 0))
 	{
-		_acc.y = -HIGHEST_ACCELERATION;
+		_accel.y = -HIGHEST_ACCELERATION;
 	}
 	
-	if ((_acc.z > HIGHEST_ACCELERATION && _acc.z >= 0))
+	if ((_accel.z > HIGHEST_ACCELERATION && _accel.z >= 0))
 	{
-		_acc.z = HIGHEST_ACCELERATION;
+		_accel.z = HIGHEST_ACCELERATION;
 	}
-	else if ((_acc.z < -HIGHEST_ACCELERATION && _acc.z <= 0))
+	else if ((_accel.z < -HIGHEST_ACCELERATION && _accel.z <= 0))
 	{
-		_acc.z = -HIGHEST_ACCELERATION;
+		_accel.z = -HIGHEST_ACCELERATION;
 	}
 }
 
 void PhysicEngine::_ApplyFriction()
 {
 	// simulate friction
-	_acc *= 0.90f;
-	if (((_acc.x < LOWEST_ACCELERATION && _acc.x >= 0) || (_acc.x > -LOWEST_ACCELERATION && _acc.x <= 0)) &&
-		((_acc.y < LOWEST_ACCELERATION && _acc.y >= 0) || (_acc.y > -LOWEST_ACCELERATION && _acc.y <= 0)) &&
-		((_acc.z < LOWEST_ACCELERATION && _acc.z >= 0) || (_acc.z > -LOWEST_ACCELERATION && _acc.z <= 0)))
+	_accel *= 0.90f;
+	if (((_accel.x < LOWEST_ACCELERATION && _accel.x >= 0) || (_accel.x > -LOWEST_ACCELERATION && _accel.x <= 0)) &&
+		((_accel.y < LOWEST_ACCELERATION && _accel.y >= 0) || (_accel.y > -LOWEST_ACCELERATION && _accel.y <= 0)) &&
+		((_accel.z < LOWEST_ACCELERATION && _accel.z >= 0) || (_accel.z > -LOWEST_ACCELERATION && _accel.z <= 0)))
 	{
-		_acc = VECTOR_ZERO;
-		// Temporary solution.
-		_vel = VECTOR_ZERO;
+		StopMotion();
 	}
 }
 
@@ -437,16 +419,7 @@ void PhysicEngine::_SolveCollusionBox(PhysicEngine &other)
 			Case 2: This object is on top the of Other object.
 			Case 3: This object is under the Other object.
 			Case 4: This object has been engulfed by Other object.
-			if (_cage.max.x > other._cage.max.x && _cage.min.x < other._cage.min.x)
-				// case 1
-			else if (other._cage.max.x > _cage.min.x && _cage.min.x > other._cage.min.x)
-				// case 2
-			else if (_cage.max.x > other._cage.min.x && other._cage.min.x > _cage.max.x)
-				// case 3
-			else if (other._cage.max.x > _cage.max.x && _cage.min.x > other._cage.min.x)
-				// case 4
 		*/
-		// Optimized version.
 		if (other._cage.max.x > _cage.min.x && other._cage.max.x < _cage.max.x)
 		{
 			// Covers case 1 && 2
@@ -458,7 +431,6 @@ void PhysicEngine::_SolveCollusionBox(PhysicEngine &other)
 			dist_x = _cage.max.x - other._cage.min.x;
 		}
 		dist_x = dist_x / 2;
-
 
 		if (other._cage.max.y > _cage.min.y && other._cage.max.y < _cage.max.y)
 		{
@@ -484,17 +456,18 @@ void PhysicEngine::_SolveCollusionBox(PhysicEngine &other)
 		}
 		dist_z = dist_z / 2;
 		
-		auto push_vec = glm::vec3(dist_x, dist_y, dist_z);
-		this->_vel = push_vec;
-		other._vel = push_vec;
 
-		this->_acc -= this->_acc;
-		other._acc -= other._acc;
+		this->StopMotion();
+		other.StopMotion();
+
+		auto push_vec = glm::vec3(dist_x, dist_y, dist_z);
+		this->_velocity = push_vec;
+		other._velocity = push_vec;
 	}
 	else
 	{
-		this->_vel -= this->_vel;
-		other._vel -= other._vel;
+		this->ReverseMotion();
+		other.ReverseMotion();
 	}
 }
 

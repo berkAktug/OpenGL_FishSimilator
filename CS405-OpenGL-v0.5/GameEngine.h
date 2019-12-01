@@ -18,6 +18,7 @@
 
 #include "StringTable.h"
 #include "Enums.h"
+#include "Point.h"
 
 class GameEngine {
 public:
@@ -258,6 +259,8 @@ void GameEngine::SetPlayer(const std::string &filepath, const glm::vec3 &scaleVe
 {
 	_playerObject = new GameObject(filepath, ObjectType::Player);
 	_playerObject->ScaleObject(scaleVec);
+
+	camera.setPosition(_playerObject->GetPosition());
 }
 
 void GameEngine::SetScreenPanelHP(const std::string &filepath, const glm::vec3 &scaleVec = glm::vec3(1.0f))
@@ -531,7 +534,7 @@ void GameEngine::_DoCollusionCoin()
 
 		if (_playerObject->CheckCollusion(_coinObjects[i])) 
 		{
-			//_coinObjects[i]->setShouldRender(false);
+			_coinObjects[i]->DisableRender();
 			std::cout << "yedi" << std::endl;
 			_playerObject->Print();
 			_coinObjects[i]->Print();

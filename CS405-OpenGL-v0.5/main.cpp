@@ -50,7 +50,7 @@ int main()
 	engine.SetPlayer(FILE_OBJECT_CYBORG, scaleCyborg);
 
 	engine.AddEnemy(FILE_OBJECT_NANOSUIT, scaleSoldier);
-	engine.AddEnemy(FILE_OBJECT_NANOSUIT, scaleSoldier);
+	//engine.AddEnemy(FILE_OBJECT_NANOSUIT, scaleSoldier);
 		  
 	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
 	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
