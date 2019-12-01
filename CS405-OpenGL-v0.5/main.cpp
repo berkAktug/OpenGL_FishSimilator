@@ -42,6 +42,7 @@ std::string FILE_SHADER_FRAGMENT_STANDART_OBJECT = "./Resource/shaders/model_loa
 std::string FILE_SHADER_VERTEX_STANDARD_OBJECT	 = "./Resource/shaders/model_loading.vs";
 //"./Resource/objects/cube/cube.obj"
 //
+
 std::string FILE_OBJECT_CYBORG			= "./Resource/objects/cyborg/cyborg.obj";
 std::string FILE_OBJECT_NANOSUIT		= "./Resource/objects/nanosuit/nanosuit.obj";
 std::string FILE_OBJECT_FLATPLANE		= "./Resource/objects/flat-plane/flat-plane.obj";
@@ -174,24 +175,30 @@ int main()
 	// frame counter for random movement
 	// ---------------
 
+	std::string FILE_OBJECT_help_here2 = "./Resource/objects/Help_here2/press_here.obj";
 
-	
+	std::string FILE_OBJECT_help_here = "./Resource/objects/Help_here/press_here.obj";
 	std::string FILE_OBJECT_Galp = "./Resource/objects/Galp/Galp.obj";
 	std::string FILE_OBJECT_Score = "./Resource/objects/Score/Score.obj";
 	std::string FILE_OBJECT_Hunger = "./Resource/objects/Hunger/Hunger.obj";
 
+	auto Help_Model_mini = Model(FILE_OBJECT_help_here2);
+
+	auto Help_Model=Model(FILE_OBJECT_help_here);
 	auto GalpModel = Model(FILE_OBJECT_Galp);
 	auto ScoreModel = Model(FILE_OBJECT_Score);
 	auto HungerModel = Model(FILE_OBJECT_Hunger);
-
+	
+	auto Helpscale = glm::vec3(0.1f, 0.9f, 0.2f);
 	auto scaleGalp = glm::vec3(0.1f, 0.9f, 0.2f);
 	auto scaleScore = glm::vec3(0.1f, 0.9f, 0.2f);
 	auto HungerScore = glm::vec3(0.1f, 0.9f, 0.2f);
 
+	Help_Model.ScaleModel(Helpscale);
 	GalpModel.ScaleModel(scaleGalp);
 	ScoreModel.ScaleModel(scaleScore);
 	HungerModel.ScaleModel(HungerScore);
-
+	Help_Model_mini.ScaleModel(scaleGalp);
 
 
 	int lives=3;
@@ -329,6 +336,32 @@ int main()
 				}
 
 			}
+			bool help_open = 0;
+			if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
+			{
+				help_open = !help_open;
+			}
+			if (!help_open) {
+				ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", { 1.0f,0.0f,0.0f,0.0f,//x
+																				 0.0f,1.0f,0.0f,0.0f,//y
+																				 0.0f,0.0f,0.0f,0.0f,//z
+																				 0.0f,7.50f ,0.0f,8.0f });
+
+				Help_Model_mini.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			}
+			if (help_open) {
+				ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", { 1.0f,0.0f,0.0f,0.0f,//x
+																				 0.0f,1.f,0.0f,0.0f,//y
+																				 0.0f,0.0f,1.0f,0.0f,//z
+																				 0.0f,0.0f,0.0f,1.0f });
+				
+				Help_Model.Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			}
+
+
+
+
+
 		}
 
 
