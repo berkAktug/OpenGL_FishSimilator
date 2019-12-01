@@ -87,10 +87,10 @@ void Camera::ProcessKeyboard(Directions direction, float deltaTime)
 		Position += Front * velocity;
 	if (direction == Directions::BACKWARD)
 		Position -= Front * velocity;
-	if (direction == Directions::LEFT)
-		Position -= Right * velocity;
 	if (direction == Directions::RIGHT)
 		Position += Right * velocity;
+	if (direction == Directions::LEFT)
+		Position -= Right * velocity;
 	if (direction == Directions::UP)
 		Position += Up * velocity;
 	if (direction == Directions::DOWN)
@@ -114,7 +114,7 @@ void Camera::ProcessMouseMovement(float xoffset, float yoffset, GLboolean constr
 			Pitch = -89.0f;
 	}
 
-	// _Update Front, Right and Up Vectors using the updated Euler angles
+	// _Render Front, Right and Up Vectors using the updated Euler angles
 	_updateCameraVectors();
 }
 

@@ -19,7 +19,7 @@ const double GAMEBOUNDRY_Z =  50.0;
 // Constant Vectors
 const glm::vec3 VECTOR_ZERO = glm::vec3(0.0, 0.0, 0.0);
 const glm::vec3 VECTOR_UP = glm::vec3(0.0f, VECTOR_COEFFICIENT, 0.0f);
-const glm::vec3 VECTOR_RIGHT = glm::vec3(VECTOR_COEFFICIENT, 0.0f, 0.0f);
+const glm::vec3 VECTOR_LEFT = glm::vec3(VECTOR_COEFFICIENT, 0.0f, 0.0f);
 const glm::vec3 VECTOR_FORWARD = glm::vec3(0.0f, 0.0f, VECTOR_COEFFICIENT);
 
 // Default camera values

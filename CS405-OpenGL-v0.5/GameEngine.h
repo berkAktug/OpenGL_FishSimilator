@@ -25,6 +25,8 @@ public:
 
 	void Init();
 
+	void NotifyObjectChanges();
+
 	void StartGame();
 
 	void FinishGame();
@@ -40,8 +42,14 @@ public:
 
 	void SetSkybox(const std::vector<std::string> & faces);
 
+	void PrintObjects();
+
 private:
 	GameEngine() {} // Since we want only one instance of the engine-> We use an singleton pattern.
+
+
+	// Game Data
+	// ------------------------------------
 
 	/*  Skybox Data  */
 	unsigned int _skyboxVAO, _skyboxVBO;
@@ -53,39 +61,49 @@ private:
 
 	int _frameCounter;// = 0;
 
-	/*  Game Objects Data  */
+	/*  Game Objects */
 	std::vector<GameObject*> _enemyObjects;
 	std::vector<GameObject*> _coinObjects;
-	
+
+	/*  Protagonist Object*/
 	GameObject *_playerObject;
 
+	/* On Screen Panel Objects */
 	GameObject *_screenPanelHP;
 	GameObject *_screenPanelScore;
 	GameObject *_screenPanelHunger;
 
+	/*  Game Window Data  */
+	GLFWwindow* _window;
+	unsigned int _windowSize[2];
+	float _windowRatio;
+
+	/*  Camera Matricies  */
+	glm::mat4 _projectionMatrix;
+	glm::mat4 _viewMatrix;
+
+	/*  Debug Control Bool  */
+	bool _isDebugMode;
+
+	/*  Debug Print Bool  */
+	bool _printBool;
 
 	//  Functions 
 	// -------------------------------------
 
-	/*  Game Window Data  */
-	GLFWwindow* _window;
-	unsigned int _windowSize[2];
-	float _windowRatio; 
-
-	glm::mat4 _projectionMatrix;
-	glm::mat4 _viewMatrix;
-
-	/*  Debug Control bool  */
-	bool _isDebugMode;
-
-	/*  Update & Render Objects  */
+	/*  Update Objects  */
 	void _Update();
+
+	/*  Draw & Render Objects  */
+	void _Render();
 	void _UpdateScreenPanel();
 	void _UpdateSkybox();
 
 	/*  Collusion Functions  */
-	void _DoCollusionPlayerWith(std::vector<GameObject*>& objectList);
-	void _DoCollusionPlayer();
+	void _DoBoundryCollusionWith(std::vector<GameObject*> objectList);
+	void _DoBoundryCollusion();
+	void _DoCollusionEnemy();
+	void _DoCollusionCoin();
 	void _DoCollusion();
 
 	/*  Process User Input  */
@@ -129,6 +147,23 @@ void GameEngine::Init()
 	_InitGameWindow();
 }
 
+inline void GameEngine::NotifyObjectChanges()
+{
+	for (int i = 0; i < 100; i++)
+	{
+		float current_frame = glfwGetTime();
+
+		_deltaTime = current_frame - _lastTime;
+		_lastTime = current_frame - _lastTime;
+
+		_DoBoundryCollusion();
+
+		_Update();
+	}
+	_deltaTime = 0.0f;
+	_lastTime = 0.0f;
+}
+
 void GameEngine::StartGame()
 {
 	while (!glfwWindowShouldClose(_window))
@@ -151,8 +186,15 @@ void GameEngine::StartGame()
 		this->_DoCollusion();
 
 		// view/projection transformations
-		this->_projectionMatrix = glm::perspective(glm::radians(camera.getZoom()), _windowRatio, 0.1f, 100.0f);
+		if (!_isDebugMode) {
+			glm::vec3 camera_pos = _playerObject->GetModelMatrix() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+			camera.setPosition(camera_pos + glm::vec3(0.0f, 2.0f, -3.0f));
+		}
+
+
+		this->_projectionMatrix = glm::perspective(glm::radians(camera.getZoom()), _windowRatio, 0.1f, 100.0f);		
 		this->_viewMatrix = camera.GetViewMatrix();
+		
 		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("projection", _projectionMatrix);
 		ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("view", _viewMatrix);
 
@@ -160,11 +202,16 @@ void GameEngine::StartGame()
 		// ----------------------
 		this->_ProcessInput();
 
-		//// update & render objects
+		// Update Objects
+		// -----------------------
 		_Update();
 
+		// Render Objects
+		// -----------------------
+		_Render();
+
 		// after game objects are rendered, render the on screen panels
-		//_UpdateScreenPanel();
+		_UpdateScreenPanel();
 
 		// Lastly render skybox.
 		_UpdateSkybox();
@@ -188,6 +235,8 @@ void GameEngine::FinishGame()
 void GameEngine::AddEnemy(const std::string &filepath, const glm::vec3 &scaleVec = glm::vec3(1.0f))
 {
 	auto enemy_object = new GameObject(filepath, ObjectType::Enemy);
+	
+	enemy_object->PlaceRandomly();
 
 	enemy_object->ScaleObject(scaleVec);
 
@@ -197,7 +246,9 @@ void GameEngine::AddEnemy(const std::string &filepath, const glm::vec3 &scaleVec
 void GameEngine::AddCoin(const std::string &filepath, const glm::vec3 &scaleVec = glm::vec3(1.0f))
 {
 	auto coin_object = new GameObject(filepath, ObjectType::Coin);
-
+	
+	coin_object->PlaceRandomly();
+	
 	coin_object->ScaleObject(scaleVec);
 
 	_coinObjects.push_back(coin_object);
@@ -206,28 +257,24 @@ void GameEngine::AddCoin(const std::string &filepath, const glm::vec3 &scaleVec 
 void GameEngine::SetPlayer(const std::string &filepath, const glm::vec3 &scaleVec = glm::vec3(1.0f))
 {
 	_playerObject = new GameObject(filepath, ObjectType::Player);
-
 	_playerObject->ScaleObject(scaleVec);
 }
 
 void GameEngine::SetScreenPanelHP(const std::string &filepath, const glm::vec3 &scaleVec = glm::vec3(1.0f))
 {
 	_screenPanelHP = new GameObject(filepath, ObjectType::OnScreenPanel);
-
 	_screenPanelHP->ScaleObject(scaleVec);
 }
 
 void GameEngine::SetScreenPanelScore(const std::string &filepath, const glm::vec3 &scaleVec = glm::vec3(1.0f))
 {
 	_screenPanelScore = new GameObject(filepath, ObjectType::OnScreenPanel);
-
 	_screenPanelScore->ScaleObject(scaleVec);
 }
 
 void GameEngine::SetScreenPanelHunger(const std::string &filepath, const glm::vec3 &scaleVec = glm::vec3(1.0f))
 {
 	_screenPanelHunger = new GameObject(filepath, ObjectType::OnScreenPanel);
-
 	_screenPanelHunger->ScaleObject(scaleVec);
 }
 
@@ -310,21 +357,60 @@ void GameEngine::SetSkybox(const std::vector<std::string> & faces)
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+}
 
+void GameEngine::PrintObjects()
+{
+	std::cout << "\nEnemy Objects\n~~~~~~~~~~~~~~~~~~~~~~\n";
+	for (int i = 0; i < _enemyObjects.size(); i++)
+	{
+		_enemyObjects[i]->Print();
+	}
+
+	std::cout << "Coin Objects\n~~~~~~~~~~~~~~~~~~~~~~\n";
+	for (int i = 0; i < _coinObjects.size(); i++)
+	{
+		_coinObjects[i]->Print();
+	}
+	
+	std::cout << "Player Objects\n~~~~~~~~~~~~~~~~~~~~~~\n";
+	if (_playerObject != nullptr)
+		_playerObject->Print();
 }
 
 void GameEngine::_Update()
 {
 	for (int i = 0; i < _enemyObjects.size(); i++)
 	{
-		_enemyObjects[i]->Update(KEY_SHADER_OBJECT);
+		_enemyObjects[i]->Update(_deltaTime);
 	}
 
-	_playerObject->Update(KEY_SHADER_OBJECT);
+	_playerObject->Update(_deltaTime);
 
 	for (int i = 0; i < _coinObjects.size(); i++)
 	{
-		_coinObjects[i]->Update(KEY_SHADER_OBJECT);
+		if (_coinObjects[i]->getShouldRender()) 
+		{
+			_coinObjects[i]->Update(_deltaTime);
+		}
+	}
+}
+
+void GameEngine::_Render()
+{
+	for (int i = 0; i < _enemyObjects.size(); i++)
+	{
+		_enemyObjects[i]->Draw(KEY_SHADER_OBJECT);
+	}
+
+	_playerObject->Draw(KEY_SHADER_OBJECT);
+
+	for (int i = 0; i < _coinObjects.size(); i++)
+	{
+		if (_coinObjects[i]->getShouldRender()) 
+		{
+			_coinObjects[i]->Draw(KEY_SHADER_OBJECT);
+		}
 	}
 }
 
@@ -345,7 +431,8 @@ void GameEngine::_UpdateScreenPanel()
 																			 0.0f,1.0f,0.0f,0.0f,//y
 																			 0.0f,0.0f,0.0f,0.0f,//z
 																			 -7.50f,7.50f - i,0.0f,8.0f });
-			_screenPanelHP->Update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			_screenPanelHP->Update(_deltaTime);
+			_screenPanelHP->Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		}
 
 		int tmp_score = TOTAL_SCORE;
@@ -355,7 +442,8 @@ void GameEngine::_UpdateScreenPanel()
 																			 0.0f,1.0f,0.0f,0.0f,//y
 																			 0.0f,0.0f,0.0f,0.0f,//z
 																			 6.0f - i,6.10f ,0.0f,6.5f });
-			_screenPanelScore->Update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			_screenPanelScore->Update(_deltaTime);
+			_screenPanelScore->Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		}
 		for (int j = 0; 0 < tmp_score; j++, tmp_score--)
 		{
@@ -363,7 +451,8 @@ void GameEngine::_UpdateScreenPanel()
 																			 0.0f,1.0f,0.0f,0.0f,//y
 																			 0.0f,0.0f,0.0f,0.0f,//z
 																			 7.50f - j,6.40f ,0.0f,8.0f });
-			_screenPanelScore->Update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			_screenPanelScore->Update(_deltaTime);
+			_screenPanelScore->Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		}
 		if (VAR_HUNGER < 10) {
 			ResourceManager::GetShader(KEY_SHADER_OBJECT).setMat4("model", { 10 - VAR_HUNGER,0.0f,0.0f,0.0f,//x
@@ -371,7 +460,8 @@ void GameEngine::_UpdateScreenPanel()
 																			 0.0f,0.0f,0.0f,0.0f,//z
 																			 0.0f,-7.50f,0.0f,8.0f });
 			VAR_HUNGER += (0.000001*SCR_WIDTH);
-			_screenPanelHunger->Update(ResourceManager::GetShader(KEY_SHADER_OBJECT));
+			_screenPanelHunger->Update(_deltaTime);
+			_screenPanelHunger->Draw(ResourceManager::GetShader(KEY_SHADER_OBJECT));
 		}
 		else if (TOTAL_LIVES > 0)
 		{
@@ -397,29 +487,70 @@ void GameEngine::_UpdateSkybox()
 	glDepthFunc(GL_LESS); // set depth function back to default
 }
 
-void GameEngine::_DoCollusionPlayerWith(std::vector<GameObject*> & objectList)
+void GameEngine::_DoBoundryCollusionWith(std::vector<GameObject*> objectList)
 {
 	for (int i = 0; i < objectList.size(); i++)
 	{
 		objectList[i]->DoBoundryCollusion();
-		for (int j = i; j < objectList.size(); j++)
-		{
-			objectList[i]->DoCollusion(objectList[i]);
-		}
-		_playerObject->DoCollusion(objectList[i]);
 	}
 }
 
-void GameEngine::_DoCollusionPlayer()
+void GameEngine::_DoBoundryCollusion()
 {
+	_DoBoundryCollusionWith(_enemyObjects);
+	_DoBoundryCollusionWith(_coinObjects);
+
 	_playerObject->DoBoundryCollusion();
 }
 
+void GameEngine::_DoCollusionEnemy()
+{
+	for (int i = 0; i < _enemyObjects.size(); i++)
+	{
+		for (int j = i; j < _enemyObjects.size(); j++)
+		{
+			_enemyObjects[i]->DoCollusion(_enemyObjects[i]);
+		}
+		_playerObject->DoCollusion(_enemyObjects[i]);
+	}
+}
+
+#pragma optimize("", off)
+void GameEngine::_DoCollusionCoin()
+{
+	for (int i = 0; i < _coinObjects.size(); i++)
+	{
+		if (! _coinObjects[i]->getShouldRender()) { continue; }
+
+		for (int j = i; j < _coinObjects.size(); j++)
+		{
+			if (!_coinObjects[j]->getShouldRender()) { continue; }
+
+			_coinObjects[i]->DoCollusion(_coinObjects[i]);
+		}
+
+		if (_playerObject->CheckCollusion(_coinObjects[i])) 
+		{
+			//_coinObjects[i]->setShouldRender(false);
+			std::cout << "yedi" << std::endl;
+			_playerObject->Print();
+			_coinObjects[i]->Print();
+			std::cout << "bitti" << std::endl;
+
+			TOTAL_SCORE += 1;
+
+			VAR_HUNGER -= 0.5f;
+		}
+	}
+}
+#pragma optimize("", on)
+
 void GameEngine::_DoCollusion()
 {
-	_DoCollusionPlayer();
-	_DoCollusionPlayerWith(_enemyObjects);
-	_DoCollusionPlayerWith(_coinObjects);
+	_DoBoundryCollusion();
+
+	_DoCollusionEnemy();
+	_DoCollusionCoin();
 }
 
 void GameEngine::_ProcessInput()
@@ -436,13 +567,13 @@ void GameEngine::_ProcessInput()
 	{
 		_MovePlayer(Directions::BACKWARD);
 	}
-	if (glfwGetKey(_window, GLFW_KEY_A) == GLFW_PRESS)
-	{
-		_MovePlayer(Directions::LEFT);
-	}
 	if (glfwGetKey(_window, GLFW_KEY_D) == GLFW_PRESS)
 	{
 		_MovePlayer(Directions::RIGHT);
+	}
+	if (glfwGetKey(_window, GLFW_KEY_A) == GLFW_PRESS)
+	{
+		_MovePlayer(Directions::LEFT);
 	}
 	if (glfwGetKey(_window, GLFW_KEY_SPACE) == GLFW_PRESS)
 	{
@@ -460,6 +591,10 @@ void GameEngine::_ProcessInput()
 	{
 		_isDebugMode = false;
 	}
+	if (glfwGetKey(_window, GLFW_KEY_I) == GLFW_PRESS)
+	{
+		_printBool = true;
+	}
 	if (glfwGetKey(_window, GLFW_KEY_UP) == GLFW_PRESS)
 	{
 		_playerObject->AccelerateTowards(Directions::FORWARD);
@@ -468,18 +603,30 @@ void GameEngine::_ProcessInput()
 	{
 		_playerObject->AccelerateTowards(Directions::BACKWARD);
 	}
-	if (glfwGetKey(_window, GLFW_KEY_LEFT) == GLFW_PRESS)
-	{
-		_playerObject->AccelerateTowards(Directions::LEFT);
-	}
 	if (glfwGetKey(_window, GLFW_KEY_RIGHT) == GLFW_PRESS)
 	{
 		_playerObject->AccelerateTowards(Directions::RIGHT);
 	}
+	if (glfwGetKey(_window, GLFW_KEY_LEFT) == GLFW_PRESS)
+	{
+		_playerObject->AccelerateTowards(Directions::LEFT);
+	}
+	if (glfwGetKey(_window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS)
+	{
+		_playerObject->AccelerateTowards(Directions::DOWN);
+	}
+	if (glfwGetKey(_window, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
+	{
+		_playerObject->AccelerateTowards(Directions::UP);
+	}
+
 	if (glfwGetKey(_window, GLFW_KEY_P) == GLFW_PRESS)
 	{
-		std::cout << std::endl;
-		_playerObject->Print();
+		if (_printBool)
+		{
+			PrintObjects();
+			_printBool = false;
+		}
 	}
 	if (glfwGetKey(_window, GLFW_KEY_0) == GLFW_PRESS)
 	{
@@ -491,14 +638,14 @@ void GameEngine::_ProcessInput()
 void GameEngine::_MovePlayer(Directions dir)
 {
 	camera.ProcessKeyboard(dir, _deltaTime);
-	if (_isDebugMode)
+	if (!_isDebugMode)
 		_playerObject->AccelerateTowards(dir);
 }
 
 void GameEngine::_InitGameWindow()
 {
 	// glfw: initialize and configure
-// ------------------------------
+	// ------------------------------
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -538,7 +685,6 @@ void GameEngine::_InitGameWindow()
 	// -----------------------------
 	glEnable(GL_DEPTH_TEST);
 }
-
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------

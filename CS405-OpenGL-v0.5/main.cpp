@@ -54,17 +54,21 @@ int main()
 		  
 	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
 	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
-	//engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
-	//engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
-	//engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
-	//engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
-	//engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
-	//engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
+	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
+	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
+	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
+	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
+	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
+	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
 		  
 	engine.SetScreenPanelHP(FILE_OBJECT_HP, scaleHpPanel);
 	engine.SetScreenPanelScore(FILE_OBJECT_SCORE, scaleScore);
 	engine.SetScreenPanelHunger(FILE_OBJECT_HUNGER, scaleHunger);
 
+
+	//engine.NotifyObjectChanges();
+
+	engine.PrintObjects();
 
 	// Start the game
 	// ----------------

@@ -51,7 +51,7 @@ public:
 
 	// new
 	void Move(glm::vec3 vec);
-	void MoveTo(glm::vec3 vec);
+	void MoveTo(glm::vec3 vec, glm::vec3 scaleFactor);
 
 	glm::mat4 GetModelMatrix();
 
@@ -61,6 +61,7 @@ public:
 private:
 	/*  Model Data  */
 	glm::mat4 _modelMatrix;
+
 	Point _max;
 	Point _min;
 
@@ -95,23 +96,22 @@ void Model::ScaleModel(glm::vec3 scale)
 {
 	//_modelMatrix = glm::scale(glm::mat4(1.0f), scaleVector);
 
-	double depth  = _max.x - _min.x;
-	double height = _max.y - _min.y;
-	double width  = _max.z - _min.z;
+	//double depth  = _max.x - _min.x;
+	//double height = _max.y - _min.y;
+	//double width  = _max.z - _min.z;
 
-	double diff_depth = (depth  * scale.x) - depth;
-	double diff_height = (height * scale.y) - height;
-	double diff_width = (width  * scale.z) - width;
+	//double diff_depth = (depth  * scale.x) - depth;
+	//double diff_height = (height * scale.y) - height;
+	//double diff_width = (width  * scale.z) - width;
 
-	_max.x += diff_depth / 2;
-	_min.x -= diff_depth / 2;
-	 
-	_max.z += diff_width / 2;
-	_min.z -= diff_width / 2;
-	 
-	_max.y += diff_height / 2;
-	_min.y -= diff_height / 2;
-
+	//_max.x += diff_depth / 2;
+	//_min.x -= diff_depth / 2;
+	// 
+	//_max.z += diff_width / 2;
+	//_min.z -= diff_width / 2;
+	// 
+	//_max.y += diff_height / 2;
+	//_min.y -= diff_height / 2;
 
 	_modelMatrix = glm::scale(_modelMatrix, scale);
 }
@@ -121,9 +121,9 @@ void Model::Move(glm::vec3 vec)
 	_modelMatrix = glm::translate(_modelMatrix, vec);
 }
 
-void Model::MoveTo(glm::vec3 vec)
+void Model::MoveTo(glm::vec3 vec, glm::vec3 scaleFactor)
 {
-	_modelMatrix = glm::translate(glm::mat4(1.0f), vec);
+	_modelMatrix = glm::translate(glm::scale(glm::mat4(1.0f), scaleFactor), vec);
 }
 
 glm::mat4 Model::GetModelMatrix()
