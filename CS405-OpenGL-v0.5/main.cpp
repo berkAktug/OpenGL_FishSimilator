@@ -35,7 +35,7 @@ int main()
 
 	ResourceManager::GetShader(KEY_SHADER_SKYBOX).use().setInt("skybox", 0);
 
-	// Scale models 
+	// ScaleCollider models 
 	// -------------------
 	auto scaleCyborg = glm::vec3(0.5f, 0.5f, 0.5f);
 	auto scaleSoldier = glm::vec3(0.2f, 0.2f, 0.2f);
@@ -51,20 +51,27 @@ int main()
 
 	engine.AddEnemy(FILE_OBJECT_NANOSUIT, scaleSoldier);
 	engine.AddEnemy(FILE_OBJECT_NANOSUIT, scaleSoldier);
+	engine.AddEnemy(FILE_OBJECT_NANOSUIT, scaleSoldier);
+	engine.AddEnemy(FILE_OBJECT_NANOSUIT, scaleSoldier);
+	engine.AddEnemy(FILE_OBJECT_NANOSUIT, scaleSoldier);
 		  
 	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
 	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
-	//engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
-	//engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
-	//engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
-	//engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
-	//engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
-	//engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
+	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
+	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
+	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
+	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
+	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
+	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
 		  
 	engine.SetScreenPanelHP(FILE_OBJECT_HP, scaleHpPanel);
 	engine.SetScreenPanelScore(FILE_OBJECT_SCORE, scaleScore);
 	engine.SetScreenPanelHunger(FILE_OBJECT_HUNGER, scaleHunger);
 
+
+	//engine.NotifyObjectChanges();
+
+	engine.PrintObjects();
 
 	// Start the game
 	// ----------------

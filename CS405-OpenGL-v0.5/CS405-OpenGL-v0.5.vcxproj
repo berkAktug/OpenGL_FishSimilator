@@ -25,9 +25,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Collider.h" />
     <ClInclude Include="GameEngine.h" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="PhysicsEngine.h" />
+    <ClInclude Include="Player.h" />
+    <ClInclude Include="Point.h" />
+    <ClInclude Include="Transform.h" />
     <ClInclude Include="values.h" />
     <ClInclude Include="Enums.h" />
     <ClInclude Include="model.h" />
