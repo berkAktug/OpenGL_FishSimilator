@@ -5,7 +5,7 @@
 
 // Default Object movement values
 
-const double DIVISION_COEFFICIENT = 10;
+const double DIVISION_COEFFICIENT = 1;
 const double VECTOR_COEFFICIENT = 1.0 / DIVISION_COEFFICIENT;
 
 const double LOWEST_ACCELERATION  = 0.3 / DIVISION_COEFFICIENT;

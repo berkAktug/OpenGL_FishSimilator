@@ -11,7 +11,7 @@ public:
 	Player();
 	Player(const std::string & filePath);
 
-	void Move(bool *keys, GLfloat deltaTime);
+	void MoveCollider(bool *keys, GLfloat deltaTime);
 
 	void IncreasePosition(glm::vec3 position);
 	void IncreaseRotation(glm::vec3 rotation);
@@ -41,7 +41,7 @@ private:
 	void MoveRigidBody(glm::vec3 deltaMove);
 };
 
-void Player::Move(bool * keys, GLfloat deltaTime)
+void Player::MoveCollider(bool * keys, GLfloat deltaTime)
 {
 	before = transform.position;
 

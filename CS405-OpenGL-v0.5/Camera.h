@@ -6,6 +6,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+//#include "Player.h"
+
 #include <vector>
 
 #include "Enums.h"
@@ -62,6 +64,10 @@ private:
 	glm::vec3 Right;
 	glm::vec3 WorldUp;
 
+	//Player *player;
+	float distanceFromPlayer = 13.0f;
+	float angleAroundPlayer = 0.0f;
+
 	// Euler Angles
 	float Yaw;
 	float Pitch;
@@ -70,6 +76,11 @@ private:
 	float MovementSpeed;
 	float MouseSensitivity;
 	float Zoom;
+
+	float _CalculateVerticalDistance();
+
+	float _CalculateHorizontalDistance();
+
 
 	// Calculates the front vector from the Camera's (updated) Euler Angles
 	void _updateCameraVectors();
@@ -147,6 +158,16 @@ float Camera::getZoom()
 {
 	return this->Zoom;
 }
+
+//float Camera::_CalculateVerticalDistance()
+//{
+//	return (float)(distanceFromPlayer * sin(glm::radians(pitch)));
+//}
+//
+//float Camera::_CalculateHorizontalDistance()
+//{
+//	return (float)(distanceFromPlayer * cos(glm::radians(pitch)));
+//}
 
 void Camera::_updateCameraVectors()
 {

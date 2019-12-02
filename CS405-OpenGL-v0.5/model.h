@@ -37,35 +37,35 @@ public:
 	std::string directory;
 
 	/*  Functions   */
-	// constructor, expects a filepath to a 3D _model.
+	// constructor, expects a filepath to a 3D model.
 	Model(std::string const &path)
 	{
 		_LoadModel(path);
 		_modelMatrix = glm::mat4(1.0f);
 	}
 
-	void Print();
+	void PrintModel();
 
 	void ScaleModel(glm::vec3 scaleVector);
 
 	void Draw(Shader shader);
 
 	// new
-	void Move(glm::vec3 vec);
-	void MoveTo(glm::vec3 vec, glm::vec3 scaleFactor);
+	void MoveModel(glm::vec3 vec);
+	void MoveModelTo(glm::vec3 vec, glm::vec3 scaleFactor);
 
 	glm::mat4 GetModelMatrix() { return _modelMatrix; }
 	void SetModelMatrix(glm::mat4 matrix) { _modelMatrix = matrix; }
 
-	Point GetInitialMax() { return this->_max; }
-	Point GetInitialMin() { return this->_min; }
+	glm::vec3 GetInitialMax() { return this->_max; }
+	glm::vec3 GetInitialMin() { return this->_min; }
 
 private:
 	/*  Model Data  */
 	glm::mat4 _modelMatrix;
 
-	Point _max;
-	Point _min;
+	glm::vec3 _max;
+	glm::vec3 _min;
 
 	/*  Functions   */
 	void _LoadModel(std::string const & path);
@@ -77,7 +77,7 @@ private:
 	std::vector<Texture> _LoadMaterialTextures(aiMaterial * mat, aiTextureType type, std::string typeName);
 };
 
-void Model::Print()
+void Model::PrintModel()
 {
 	glm::mat4 tmp_model_matrix = _modelMatrix;
 
@@ -99,17 +99,17 @@ void Model::ScaleModel(glm::vec3 scale)
 	_modelMatrix = glm::scale(_modelMatrix, scale);
 }
 
-void Model::Move(glm::vec3 vec)
+void Model::MoveModel(glm::vec3 vec)
 {
 	_modelMatrix = glm::translate(_modelMatrix, vec);
 }
 
-void Model::MoveTo(glm::vec3 vec, glm::vec3 scaleFactor)
+void Model::MoveModelTo(glm::vec3 vec, glm::vec3 scaleFactor)
 {
 	_modelMatrix = glm::scale(glm::translate(glm::mat4(1.0f), vec), scaleFactor);
 }
 
-// draws the _model, and thus all its meshes
+// draws the model, and thus all its meshes
 void Model::Draw(Shader shader)
 {
 	for (unsigned int i = 0; i < meshes.size(); i++)
@@ -118,7 +118,7 @@ void Model::Draw(Shader shader)
 	}
 }
 
-// loads a _model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
+// loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
 void Model::_LoadModel(std::string const &path)
 {
 	// read file via ASSIMP
@@ -275,7 +275,7 @@ std::vector<Texture> Model::_LoadMaterialTextures(aiMaterial *mat, aiTextureType
 			texture.type = typeName;
 			texture.path = str.C_Str();
 			textures.push_back(texture);
-			textures_loaded.push_back(texture);  // store it as texture loaded for entire _model, to ensure we won't unnecesery load duplicate textures.
+			textures_loaded.push_back(texture);  // store it as texture loaded for entire model, to ensure we won't unnecesery load duplicate textures.
 		}
 	}
 	return textures;

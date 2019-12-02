@@ -20,6 +20,8 @@
 #include "Enums.h"
 #include "Point.h"
 
+const float MAX_RENDER_DISTANCE = 10.0f;
+
 class GameEngine {
 public:
 	static GameEngine &GetInstance();
@@ -47,11 +49,7 @@ public:
 
 private:
 	GameEngine() {} // Since we want only one instance of the engine-> We use an singleton pattern.
-
-
-	// Game Data
-	// ------------------------------------
-
+	
 	/*  Skybox Data  */
 	unsigned int _skyboxVAO, _skyboxVBO;
 	unsigned int _skyboxTextureID;
@@ -66,7 +64,7 @@ private:
 	std::vector<GameObject*> _enemyObjects;
 	std::vector<GameObject*> _coinObjects;
 
-	/*  Protagonist Object*/
+	/*  Player Object*/
 	GameObject *_playerObject;
 
 	/* On Screen Panel Objects */
@@ -83,18 +81,14 @@ private:
 	glm::mat4 _projectionMatrix;
 	glm::mat4 _viewMatrix;
 
-	/*  Debug Control Bool  */
+	// Debug Controls
 	bool _isDebugMode;
-
-	/*  Debug Print Bool  */
-	bool _printBool;
-
-	//  Functions 
-	// -------------------------------------
+	bool _debugPrinter;
 
 	/*  Update Objects  */
 	void _Update();
 
+	bool _IsRenderable(GameObject * object);
 	/*  Draw & Render Objects  */
 	void _Render();
 	void _UpdateScreenPanel();
@@ -110,7 +104,7 @@ private:
 	/*  Process User Input  */
 	void _ProcessInput();
 
-	/*  Move Player With User Input  */
+	/*  MoveCollider Player With User Input  */
 	void _MovePlayer(Directions dir);
 
 	/*  Init GLFW window  */
@@ -188,7 +182,7 @@ void GameEngine::StartGame()
 
 		// view/projection transformations
 		if (!_isDebugMode) {
-			glm::vec3 camera_pos = _playerObject->GetModelMatrix() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+			glm::vec3 camera_pos = _playerObject->model->GetModelMatrix() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 			camera.setPosition(camera_pos + glm::vec3(0.0f, 2.0f, -3.0f));
 		}
 
@@ -367,18 +361,18 @@ void GameEngine::PrintObjects()
 	std::cout << "\nEnemy Objects\n~~~~~~~~~~~~~~~~~~~~~~\n";
 	for (int i = 0; i < _enemyObjects.size(); i++)
 	{
-		_enemyObjects[i]->Print();
+		_enemyObjects[i]->PrintObject();
 	}
 
 	std::cout << "Coin Objects\n~~~~~~~~~~~~~~~~~~~~~~\n";
 	for (int i = 0; i < _coinObjects.size(); i++)
 	{
-		_coinObjects[i]->Print();
+		_coinObjects[i]->PrintObject();
 	}
 	
 	std::cout << "Player Objects\n~~~~~~~~~~~~~~~~~~~~~~\n";
 	if (_playerObject != nullptr)
-		_playerObject->Print();
+		_playerObject->PrintObject();
 }
 
 void GameEngine::_Update()
@@ -392,25 +386,43 @@ void GameEngine::_Update()
 
 	for (int i = 0; i < _coinObjects.size(); i++)
 	{
-		if (_coinObjects[i]->getShouldRender()) 
-		{
-			_coinObjects[i]->Update(_deltaTime);
-		}
+		_coinObjects[i]->Update(_deltaTime);
 	}
+}
+
+bool GameEngine::_IsRenderable(GameObject *object)
+{
+	if (!object->ShouldRender())
+	{
+		return false;
+	}
+	
+	auto dist = _playerObject->collider->GetDistance(object->collider);
+
+	if (dist.x > MAX_RENDER_DISTANCE || dist.y > MAX_RENDER_DISTANCE || dist.z > MAX_RENDER_DISTANCE
+		|| dist.x < -MAX_RENDER_DISTANCE || dist.y < -MAX_RENDER_DISTANCE || dist.z < - MAX_RENDER_DISTANCE)
+	{
+		return false;
+	}
+	return true;
 }
 
 void GameEngine::_Render()
 {
+
 	for (int i = 0; i < _enemyObjects.size(); i++)
 	{
-		_enemyObjects[i]->Draw(KEY_SHADER_OBJECT);
+		if (_IsRenderable(_enemyObjects[i]))
+		{
+			_enemyObjects[i]->Draw(KEY_SHADER_OBJECT);
+		}
 	}
 
 	_playerObject->Draw(KEY_SHADER_OBJECT);
 
 	for (int i = 0; i < _coinObjects.size(); i++)
 	{
-		if (_coinObjects[i]->getShouldRender()) 
+		if (_IsRenderable(_coinObjects[i]))
 		{
 			_coinObjects[i]->Draw(KEY_SHADER_OBJECT);
 		}
@@ -518,35 +530,34 @@ void GameEngine::_DoCollusionEnemy()
 	}
 }
 
-#pragma optimize("", off)
+//#pragma optimize("", off)
 void GameEngine::_DoCollusionCoin()
 {
 	for (int i = 0; i < _coinObjects.size(); i++)
 	{
-		if (! _coinObjects[i]->getShouldRender()) { continue; }
-
 		for (int j = i; j < _coinObjects.size(); j++)
 		{
-			if (!_coinObjects[j]->getShouldRender()) { continue; }
-
 			_coinObjects[i]->DoCollusion(_coinObjects[i]);
 		}
-
-		if (_playerObject->CheckCollusion(_coinObjects[i])) 
+		
+		if (_playerObject->CheckCollusion(_coinObjects[i]))
 		{
-			_coinObjects[i]->DisableRender();
-			std::cout << "yedi" << std::endl;
-			_playerObject->Print();
-			_coinObjects[i]->Print();
-			std::cout << "bitti" << std::endl;
+			if (_coinObjects[i]->ShouldRender())
+			{
+				_coinObjects[i]->DisableRender();
+				std::cout << "yedi" << std::endl;
+				_playerObject->PrintObject();
+				_coinObjects[i]->PrintObject();
+				std::cout << "bitti" << std::endl;
 
-			TOTAL_SCORE += 1;
+				TOTAL_SCORE += 1;
 
-			VAR_HUNGER -= 0.5f;
+				VAR_HUNGER -= 0.5f;
+			}
 		}
 	}
 }
-#pragma optimize("", on)
+//#pragma optimize("", on)
 
 void GameEngine::_DoCollusion()
 {
@@ -596,7 +607,7 @@ void GameEngine::_ProcessInput()
 	}
 	if (glfwGetKey(_window, GLFW_KEY_I) == GLFW_PRESS)
 	{
-		_printBool = true;
+		_debugPrinter = true;
 	}
 	if (glfwGetKey(_window, GLFW_KEY_UP) == GLFW_PRESS)
 	{
@@ -625,10 +636,10 @@ void GameEngine::_ProcessInput()
 
 	if (glfwGetKey(_window, GLFW_KEY_P) == GLFW_PRESS)
 	{
-		if (_printBool)
+		if (_debugPrinter)
 		{
 			PrintObjects();
-			_printBool = false;
+			_debugPrinter = false;
 		}
 	}
 	if (glfwGetKey(_window, GLFW_KEY_0) == GLFW_PRESS)

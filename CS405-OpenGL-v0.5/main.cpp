@@ -35,7 +35,7 @@ int main()
 
 	ResourceManager::GetShader(KEY_SHADER_SKYBOX).use().setInt("skybox", 0);
 
-	// Scale models 
+	// ScaleCollider models 
 	// -------------------
 	auto scaleCyborg = glm::vec3(0.5f, 0.5f, 0.5f);
 	auto scaleSoldier = glm::vec3(0.2f, 0.2f, 0.2f);
@@ -50,7 +50,10 @@ int main()
 	engine.SetPlayer(FILE_OBJECT_CYBORG, scaleCyborg);
 
 	engine.AddEnemy(FILE_OBJECT_NANOSUIT, scaleSoldier);
-	//engine.AddEnemy(FILE_OBJECT_NANOSUIT, scaleSoldier);
+	engine.AddEnemy(FILE_OBJECT_NANOSUIT, scaleSoldier);
+	engine.AddEnemy(FILE_OBJECT_NANOSUIT, scaleSoldier);
+	engine.AddEnemy(FILE_OBJECT_NANOSUIT, scaleSoldier);
+	engine.AddEnemy(FILE_OBJECT_NANOSUIT, scaleSoldier);
 		  
 	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
 	engine.AddCoin(FILE_OBJECT_COIN, scaleCoin);
